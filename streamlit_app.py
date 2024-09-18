@@ -5,6 +5,15 @@ from datetime import datetime
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 
+hide_streamlit_style = """
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+</style>
+
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True) 
+
 # Function to create a Snowflake session
 def create_snowflake_session():
     connection_parameters = {
