@@ -7,9 +7,12 @@ from snowflake.snowpark.functions import col
 
 hide_streamlit_style = """
 <style>
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
+#MainMenu {visibility: hidden;}  /* Hides the hamburger menu */
+footer {visibility: hidden;}  /* Hides the footer */
+header {visibility: hidden;}  /* Hides the header where Fork/GitHub options might be */
 </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True) 
