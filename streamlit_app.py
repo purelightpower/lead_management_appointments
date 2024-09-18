@@ -14,9 +14,6 @@ header {visibility: hidden;}  /* Hides the header where Fork/GitHub options migh
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True) 
-
 # Function to create a Snowflake session
 def create_snowflake_session():
     connection_parameters = {
