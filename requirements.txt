@@ -1,2 +1,5 @@
 streamlit
+snowflake-snowpark-python
 pandas
+numpy
+datetime

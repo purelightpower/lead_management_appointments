@@ -1,151 +1,236 @@
 import streamlit as st
 import pandas as pd
-import math
-from pathlib import Path
+import numpy as np
+from datetime import datetime
+from snowflake.snowpark import Session
+from snowflake.snowpark.functions import col
 
-# Set the title and favicon that appear in the Browser's tab bar.
-st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
+# Function to create a Snowflake session
+def create_snowflake_session():
+    connection_parameters = {
+        "account": st.secrets["snowflake"]["account"],
+        "user": st.secrets["snowflake"]["user"],
+        "password": st.secrets["snowflake"]["password"],
+        "role": st.secrets["snowflake"]["role"],
+        "warehouse": st.secrets["snowflake"]["warehouse"],
+        "database": st.secrets["snowflake"]["database"],
+        "schema": st.secrets["snowflake"]["schema"],
+    }
+    return Session.builder.configs(connection_parameters).create()
+
+# Initialize Snowpark session
+session = create_snowflake_session()
+
+# Function to execute a SQL query and return a pandas DataFrame
+def run_query(query):
+    return session.sql(query).to_pandas()
+
+# Query to get full names of 'Closer' users
+users_query = """
+    SELECT DISTINCT FULL_NAME, SALESFORCE_ID
+    FROM operational.airtable.vw_users 
+    WHERE role_type = 'Closer' AND term_date IS NULL
+"""
+df_users = run_query(users_query)
+
+# Get current targets
+current_targets_query = """
+    SELECT * FROM analytics.ad_hoc.lm_appts_test
+"""
+current_targets = run_query(current_targets_query)
+
+# Get profile pictures
+profile_picture_query = """
+    SELECT FULL_NAME, PROFILE_PICTURE
+    FROM operational.airtable.vw_users
+"""
+profile_picture = run_query(profile_picture_query)
+
+# Get appointments
+appointments_query = """
+    SELECT * FROM raw.snowflake.lm_appointments
+"""
+appointments = run_query(appointments_query)
+
+# Merge the dataframes on the full name
+merged_df = df_users.merge(
+    current_targets, left_on='FULL_NAME', right_on='CLOSER', how='left'
+).merge(
+    appointments, left_on='FULL_NAME', right_on='NAME', how='left'
+).merge(
+    profile_picture, on='FULL_NAME', how='left'
 )
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
+# Continue with your existing data processing...
 
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+# Example continuation:
+# (Ensure column names match your DataFrame)
+merged_df = merged_df.rename(columns={
+    'FULL_NAME': 'FULL_NAME',
+    'PROFILE_PICTURE': 'PROFILE_PICTURE'
+})
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
+# Drop redundant columns
+if 'CLOSER' in merged_df.columns:
+    merged_df = merged_df.drop(columns=['CLOSER'])
 
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
+# Fill NaN values and ensure correct data types
+merged_df['TARGET'] = merged_df['TARGET'].fillna(0).astype(int)
+merged_df['MARKET'] = merged_df['MARKET'].fillna('No Market').astype(str)
+merged_df['GOAL'] = merged_df['GOAL'].fillna(0).astype(int)
+merged_df['RANK'] = merged_df['RANK'].fillna(100).astype(int)
+merged_df['TYPE'] = merged_df['TYPE'].fillna('None').astype(str)
+merged_df['PROFILE_PICTURE'] = merged_df['PROFILE_PICTURE'].fillna('https://i.ibb.co/ZNK5xmN/pdycc8-1-removebg-preview.png').astype(str)
 
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
+# Convert 'ACTIVE' column to boolean
+merged_df['ACTIVE'] = merged_df['ACTIVE'].fillna('No').astype(str)
+merged_df['ACTIVE'] = merged_df['ACTIVE'].str.strip().str.lower().map({'yes': True, 'no': False})
+merged_df['ACTIVE'] = merged_df['ACTIVE'].fillna(False)  # Default to False if any other value
 
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
+# Ensure 'TYPE' column has valid options
+valid_types = ['None', '🏃 Field Marketing', '🏠 Web To Home']
+merged_df['TYPE'] = merged_df['TYPE'].apply(lambda x: x if x in valid_types else 'None')
+
+# Prepare the dataframe for editing
+edit_df = merged_df[['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'SALESFORCE_ID']].copy()
+
+# Continue with your Streamlit app...
+
+# Display the editable dataframe
+st.write("## 🎯 Edit Closer Targets")
+
+# Modify option lists to include 'All'
+def get_market_options(filtered_df):
+    return ['All Markets'] + sorted(filtered_df['MARKET'].unique())
+
+def get_closer_options(filtered_df):
+    return ['All Closers'] + sorted(filtered_df['FULL_NAME'].unique())
+
+def get_type_options(filtered_df):
+    return ['All Channels'] + sorted(filtered_df['TYPE'].unique())
+
+# Initialize with the full dataframe
+filtered_edit_df = edit_df.copy()
+
+# Create columns for the filters
+cols1, cols2, cols3 = st.columns(3)
+
+# First filter: Market
+with cols1:
+    market_input = st.selectbox('Select Market', get_market_options(filtered_edit_df), index=0, key='market_select')
+
+# Filter by market if not 'All Markets'
+if market_input != 'All Markets':
+    filtered_edit_df = filtered_edit_df[filtered_edit_df['MARKET'] == market_input]
+
+# Second filter: Closer
+with cols2:
+    closer_input = st.selectbox('Select Closer', get_closer_options(filtered_edit_df), index=0, key='closer_select')
+
+# Filter by closer if not 'All Closers'
+if closer_input != 'All Closers':
+    filtered_edit_df = filtered_edit_df[filtered_edit_df['FULL_NAME'] == closer_input]
+
+# Third filter: Type
+with cols3:
+    type_input = st.selectbox('Select Type', get_type_options(filtered_edit_df), index=0, key='type_select')
+
+# Filter by type if not 'All Channels'
+if type_input != 'All Channels':
+    filtered_edit_df = filtered_edit_df[filtered_edit_df['TYPE'] == type_input]
+
+# Sort the filtered DataFrame by 'FULL_NAME'
+filtered_edit_df = filtered_edit_df.sort_values(by='FULL_NAME')
+
+# Wrap the data editor and save button in a form
+with st.form('editor_form'):
+    # Configure the data editor with column configurations
+    edited_df = st.data_editor(
+        filtered_edit_df,
+        column_order=['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK'],
+        disabled={'FULL_NAME': True, 'PROFILE_PICTURE': True},
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            'PROFILE_PICTURE': st.column_config.ImageColumn(
+                label=' '
+            ),
+            'ACTIVE': st.column_config.CheckboxColumn(
+                'Active',
+                help="Check if the closer is active",
+                default=False
+            ),
+            'FULL_NAME': st.column_config.TextColumn(
+                'Name'
+            ),
+            'MARKET': st.column_config.TextColumn(
+                'Market'
+            ),
+            'GOAL': st.column_config.NumberColumn(
+                'Goal'
+            ),
+            'RANK': st.column_config.NumberColumn(
+                'Rank'
+            ),
+            'TYPE': st.column_config.SelectboxColumn(
+                'Type',
+                options=valid_types,
+                help="Select the type of marketing",
+                required=True
+            ),
+        }
     )
+    
+    # Add a submit button within the form
+    submitted = st.form_submit_button('Save changes')
 
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
+# Process the form submission
+if submitted:
+    # Get the original data for the filtered rows
+    original_filtered_df = edit_df.loc[edited_df.index]
+    
+    # Find the rows where any columns have changed
+    changes = edited_df.compare(original_filtered_df)
+    
+    if changes.empty:
+        st.info("No changes detected.")
+    else:
+        # Iterate over the changed rows
+        for idx in changes.index.unique():
+            row = edited_df.loc[idx]
+            full_name = row['FULL_NAME']
+            closer_id = row['SALESFORCE_ID']
+            new_goal = int(row['GOAL'])
+            new_rank = int(row['RANK'])
+            new_active = row['ACTIVE']
+            new_type = row['TYPE']
+            new_market = row['MARKET']
 
-    return gdp_df
+            # Convert boolean to 'Yes'/'No' for storage if needed
+            active_str = 'Yes' if new_active else 'No'
 
-gdp_df = get_gdp_data()
+            # Get current timestamp
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-# -----------------------------------------------------------------------------
-# Draw the actual page
-
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
-
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
-
-# Add some spacing
-''
-''
-
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
-
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
-
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
+            # Build the UPSERT SQL query (update or insert)
+            query = f"""
+            MERGE INTO raw.snowflake.lm_appointments AS target
+            USING (SELECT '{full_name}' AS NAME) AS source
+            ON target.NAME = source.NAME
+            WHEN MATCHED THEN
+                UPDATE SET
+                    GOAL = {new_goal},
+                    RANK = {new_rank},
+                    ACTIVE = '{active_str}',
+                    TYPE = '{new_type}',
+                    MARKET = '{new_market}',
+                    TIMESTAMP = '{timestamp}'
+            WHEN NOT MATCHED THEN
+                INSERT (CLOSER_ID, NAME, GOAL, RANK, ACTIVE, TYPE, MARKET, TIMESTAMP)
+                VALUES ('{closer_id}', '{full_name}', {new_goal}, {new_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}');
+            """
+            try:
+                session.sql(query).collect()
+                st.success(f"Saved changes for {full_name}")
+            except Exception as e:
+                st.error(f"Error saving changes for {full_name}: {str(e)}")
