@@ -148,7 +148,6 @@ with st.form('editor_form'):
     edited_df = st.data_editor(
         filtered_edit_df,
         column_order=['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK'],
-        num_rows="dynamic",  # Changed to dynamic for better UX
         disabled={'FULL_NAME': True, 'PROFILE_PICTURE': True},
         hide_index=True,
         use_container_width=True,
@@ -168,8 +167,7 @@ with st.form('editor_form'):
                 'Market'
             ),
             'GOAL': st.column_config.NumberColumn(
-                'Goal',
-                format="$%0.2f"
+                'Goal'
             ),
             'RANK': st.column_config.NumberColumn(
                 'Rank'
