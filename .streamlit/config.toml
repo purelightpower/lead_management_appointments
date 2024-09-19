@@ -7,15 +7,3 @@ serverPort = 8501
 
 [global]
 hideStreamlitLogo = true  # This hides the entire Streamlit menu, which includes Fork, GitHub, and Settings
-
-[theme]
-primaryColor="#4AC1E0"
-backgroundColor="#0F1116"
-secondaryBackgroundColor="#26272F"
-textColor="#ffffff"
-
-[server]
-headless = true
-
-[app]
-title = "Appointments Dashboard"
