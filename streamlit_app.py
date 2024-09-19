@@ -5,6 +5,12 @@ from datetime import datetime
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 
+st.set_page_config(
+    page_title="Targets",
+    page_icon="🎯",
+    layout="wide",
+)
+
 hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}  /* Hides the hamburger menu */
