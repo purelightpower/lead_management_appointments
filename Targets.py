@@ -5,7 +5,7 @@ from datetime import datetime
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 
-PAGE_CONFIG = {"page_title":"MyApp", 
+PAGE_CONFIG = {"page_title":"Appointment Dashboard", 
                "layout":"centered", 
                "initial_sidebar_state":"auto"}
 
