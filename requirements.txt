@@ -1,5 +1,5 @@
 snowflake-connector-python
 pandas
 numpy
-streamlit==1.38.0
-snowflake-snowpark-python==1.11.0  # Ensure this version is compatible
+streamlit
+snowflake-snowpark-python
