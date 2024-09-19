@@ -7,11 +7,11 @@ from snowflake.snowpark.functions import col
 
 st.set_page_config(
     page_title="Appointment Dashboard",
-    # page_icon="",
+    #page_icon="",
     initial_sidebar_state="collapsed"
 )
 
-st.sidebar.image("https://i.ibb.co/bbH9pgH/Purelight-Logo.webp", use_column_width=True)
+st.logo(link="https://i.ibb.co/bbH9pgH/Purelight-Logo.webp")
 
 hide_streamlit_style = """
     <style>
