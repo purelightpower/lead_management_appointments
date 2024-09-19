@@ -32,3 +32,11 @@ session = create_snowflake_session()
 # Function to execute a SQL query and return a pandas DataFrame
 def run_query(query):
     return session.sql(query).to_pandas()
+
+goals_query = """
+    SELECT *
+    FROM raw.snowflake.lm_appointments
+"""
+df_goals = run_query(goals_query)
+
+st.dataframe(df_goals)
