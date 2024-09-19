@@ -12,3 +12,23 @@ st.set_page_config(
 )
 
 st.logo("https://i.ibb.co/bbH9pgH/Purelight-Logo.webp")
+
+# Function to create a Snowflake session
+def create_snowflake_session():
+    connection_parameters = {
+        "account": st.secrets["snowflake"]["account"],
+        "user": st.secrets["snowflake"]["user"],
+        "password": st.secrets["snowflake"]["password"],
+        "role": st.secrets["snowflake"]["role"],
+        "warehouse": st.secrets["snowflake"]["warehouse"],
+        "database": st.secrets["snowflake"]["database"],
+        "schema": st.secrets["snowflake"]["schema"],
+    }
+    return Session.builder.configs(connection_parameters).create()
+
+# Initialize Snowpark session
+session = create_snowflake_session()
+
+# Function to execute a SQL query and return a pandas DataFrame
+def run_query(query):
+    return session.sql(query).to_pandas()
