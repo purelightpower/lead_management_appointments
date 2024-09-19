@@ -142,7 +142,7 @@ cols1, cols2, cols3 = st.columns(3)
 
 # First filter: Market
 with cols1:
-    market_input = st.selectbox('Select Market', get_market_options(filtered_edit_df), index=0, key='market_select')
+    market_input = st.selectbox('', get_market_options(filtered_edit_df), index=0, key='market_select')
 
 # Filter by market if not 'All Markets'
 if market_input != 'All Markets':
@@ -150,7 +150,7 @@ if market_input != 'All Markets':
 
 # Second filter: Closer
 with cols2:
-    closer_input = st.selectbox('Select Closer', get_closer_options(filtered_edit_df), index=0, key='closer_select')
+    closer_input = st.selectbox('', get_closer_options(filtered_edit_df), index=0, key='closer_select')
 
 # Filter by closer if not 'All Closers'
 if closer_input != 'All Closers':
@@ -158,7 +158,7 @@ if closer_input != 'All Closers':
 
 # Third filter: Type
 with cols3:
-    type_input = st.selectbox('Select Type', get_type_options(filtered_edit_df), index=0, key='type_select')
+    type_input = st.selectbox('', get_type_options(filtered_edit_df), index=0, key='type_select')
 
 # Filter by type if not 'All Channels'
 if type_input != 'All Channels':
