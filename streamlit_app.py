@@ -7,8 +7,7 @@ from snowflake.snowpark.functions import col
 
 st.set_page_config(
     page_title="Targets",
-    page_icon="🎯",
-    layout="wide",
+    page_icon="🎯",git
 )
 
 hide_streamlit_style = """
