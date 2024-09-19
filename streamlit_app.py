@@ -6,13 +6,18 @@ from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 
 hide_streamlit_style = """
-<style>
-#MainMenu {visibility: hidden;}  /* Hides the hamburger menu */
-footer {visibility: hidden;}  /* Hides the footer */
-header {visibility: hidden;}  /* Hides the header where Fork/GitHub options might be */
-.css-18e3th9 {padding-top: -10rem;}  /* Reduces top padding */
-.css-1d391kg {padding-top: -11rem;}  /* Adjusts top margin of content */
-</style>
+    <style>
+    #MainMenu {visibility: hidden;}  /* Hides the hamburger menu */
+    footer {visibility: hidden;}  /* Hides the footer */
+    header {visibility: hidden;}  /* Hides the header where Fork/GitHub options might be */
+    
+    /* Reduces padding from the main content container */
+    .css-10trblm {padding-top: 0px; padding-bottom: 0px;}  /* Content padding */
+    
+    /* Reduces top padding for the main app layout */
+    .css-1d391kg {padding-top: 0px !important;}  /* Top padding for content */
+    
+    </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
