@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-st.logo(link="https://i.ibb.co/bbH9pgH/Purelight-Logo.webp")
+st.logo("https://i.ibb.co/bbH9pgH/Purelight-Logo.webp")
 
 hide_streamlit_style = """
     <style>
