@@ -10,8 +10,8 @@ hide_streamlit_style = """
 #MainMenu {visibility: hidden;}  /* Hides the hamburger menu */
 footer {visibility: hidden;}  /* Hides the footer */
 header {visibility: hidden;}  /* Hides the header where Fork/GitHub options might be */
-.css-18e3th9 {padding-top: 0rem;}  /* Reduces top padding */
-.css-1d391kg {padding-top: 1rem;}  /* Adjusts top margin of content */
+.css-18e3th9 {padding-top: -10rem;}  /* Reduces top padding */
+.css-1d391kg {padding-top: -11rem;}  /* Adjusts top margin of content */
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
