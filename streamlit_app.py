@@ -5,10 +5,11 @@ from datetime import datetime
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 
-st.set_page_config(
-    page_title="Targets",
-    page_icon="🎯"
-)
+PAGE_CONFIG = {"page_title":"MyApp", 
+               "layout":"centered", 
+               "initial_sidebar_state":"auto"}
+
+st.set_page_config(**PAGE_CONFIG)
 
 hide_streamlit_style = """
     <style>
