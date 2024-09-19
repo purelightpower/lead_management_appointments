@@ -5,12 +5,6 @@ from datetime import datetime
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 
-PAGE_CONFIG = {"page_title":"Appointment Dashboard", 
-               "layout":"centered", 
-               "initial_sidebar_state":"auto"}
-
-st.set_page_config(**PAGE_CONFIG)
-
 hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}  /* Hides the hamburger menu */
