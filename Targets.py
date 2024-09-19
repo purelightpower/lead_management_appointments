@@ -21,6 +21,15 @@ hide_streamlit_style = """
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
+st.set_page_config(
+    page_title="Appointment Dashboard",
+    # page_icon="",
+    initial_sidebar_state="collapsed"
+)
+
+st.sidebar.image("https://i.ibb.co/bbH9pgH/Purelight-Logo.webp", use_column_width=True)
+
+
 # Function to create a Snowflake session
 def create_snowflake_session():
     connection_parameters = {
