@@ -230,9 +230,16 @@ if submitted:
             new_active = row['ACTIVE']
             new_type = row['TYPE']
             new_market = row['MARKET']
+            profile_picture = row['PROFILE_PICTURE']
 
             # Convert boolean to 'Yes'/'No' for storage if needed
             active_str = 'Yes' if new_active else 'No'
+
+            # Escape single quotes in strings to avoid SQL syntax issues
+            full_name = full_name.replace("'", "''")
+            profile_picture = profile_picture.replace("'", "''")
+            new_type = new_type.replace("'", "''")
+            new_market = new_market.replace("'", "''")
 
             # Get current timestamp
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -250,9 +257,10 @@ if submitted:
                     TYPE = '{new_type}',
                     MARKET = '{new_market}',
                     TIMESTAMP = '{timestamp}',
+                    PROFILE_PICTURE = '{profile_picture}'
             WHEN NOT MATCHED THEN
-                INSERT (CLOSER_ID, NAME, GOAL, RANK, ACTIVE, TYPE, MARKET, TIMESTAMP)
-                VALUES ('{closer_id}', '{full_name}', {new_goal}, {new_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}');
+                INSERT (CLOSER_ID, NAME, GOAL, RANK, ACTIVE, TYPE, MARKET, TIMESTAMP, PROFILE_PICTURE)
+                VALUES ('{closer_id}', '{full_name}', {new_goal}, {new_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}', '{profile_picture}');
             """
             try:
                 session.sql(query).collect()
