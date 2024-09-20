@@ -51,6 +51,8 @@ df_appts = run_query(appts_query)
 
 df = pd.merge(df_goals, df_appts, left_on= 'CLOSER_ID', right_on = 'CLOSER_ID', how = 'left')
 
+df["APPOINTMENTS"].fillna(0).astype(int)
+
 df['PROFILE_PICTURE'] = df['PROFILE_PICTURE'].fillna('https://i.ibb.co/ZNK5xmN/pdycc8-1-removebg-preview.png').astype(str)
 
 df['PERCENTAGE_TO_GOAL'] = df['APPOINTMENTS'] / df['GOAL']
