@@ -66,29 +66,29 @@ st.markdown("""
     <style>
     .card {
         background-color: #1e1e1e;
-        padding: 20px;
+        padding: 10px;
         border-radius: 10px;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
         color: white;
         position: relative;
     }
     .profile-section {
         display: flex;
         align-items: center;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
     }
     .profile-pic {
         border-radius: 50%;
-        width: 50px;
-        height: 50px;
+        width: 28px;
+        height: 28px;
         margin-right: 15px;
     }
     .name {
-        font-size: 22px;
+        font-size: 18px;
         font-weight: bold;
     }
     .appointments {
-        font-size: 24px;
+        font-size: 16px;
         margin-bottom: 10px;
         color: white;
     }
@@ -107,10 +107,10 @@ st.markdown("""
     }
     .goal {
         position: absolute;
-        right: 15px;
+        right: 5px;
         top: 50%;
         transform: translateY(-50%);
-        font-size: 18px;
+        font-size: 16px;
         color: white;
         font-weight: bold;
     }
