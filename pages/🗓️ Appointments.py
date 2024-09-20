@@ -61,9 +61,12 @@ df['PERCENTAGE_TO_GOAL'] = np.where(
     np.minimum((df['APPOINTMENTS'] / df['GOAL']) * 100, 100)  # Otherwise, calculate the percentage and cap it at 100
 )
 
-# Inject custom CSS for the layout and styling
+# Inject custom CSS for the layout and remove the space at the top
 st.markdown("""
     <style>
+    .css-18e3th9 {
+        padding-top: 0 !important;  /* Remove the space at the top */
+    }
     .card {
         background-color: #1e1e1e;
         padding: 10px;
@@ -121,9 +124,10 @@ st.markdown("""
 cards_per_row = 6
 
 # Group by MARKET and loop over each group
-for market, group_df in df.groupby('MARKET'):
+for idx, (market, group_df) in enumerate(df.groupby('MARKET')):
     # Add a header for each market group
-    st.divider()
+    if idx > 0:  # Only add divider after the first market group
+        st.divider()
     st.header(market)
     
     # Break the group into chunks (rows of cards)
