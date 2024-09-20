@@ -7,7 +7,7 @@ from snowflake.snowpark.functions import col
 
 st.set_page_config(
     page_title="Appointment Dashboard",
-    layout = "wide",
+    layout="wide",
     initial_sidebar_state="collapsed"
 )
 
@@ -41,22 +41,25 @@ goals_query = """
 appts_query = """
     SELECT closer, closer_id, COUNT(first_scheduled_close_start_at) APPOINTMENTS
     FROM operational.salesforce.vw_opportunities
-    WHERE sales_channel = 'Web To Home' AND WEEK(first_scheduled_close_start_at) = WEEK(CURRENT_DATE) AND YEAR(first_scheduled_close_start_at) = YEAR(CURRENT_DATE)
+    WHERE sales_channel = 'Web To Home' 
+    AND WEEK(first_scheduled_close_start_at) = WEEK(CURRENT_DATE) 
+    AND YEAR(first_scheduled_close_start_at) = YEAR(CURRENT_DATE)
     GROUP BY closer, closer_id
 """
 
 df_goals = run_query(goals_query)
-
 df_appts = run_query(appts_query)
 
-df = pd.merge(df_goals, df_appts, left_on= 'CLOSER_ID', right_on = 'CLOSER_ID', how = 'left')
+df = pd.merge(df_goals, df_appts, left_on='CLOSER_ID', right_on='CLOSER_ID', how='left')
 
 df["APPOINTMENTS"] = df["APPOINTMENTS"].fillna(0).astype(int)
-
 df['PROFILE_PICTURE'] = df['PROFILE_PICTURE'].fillna('https://i.ibb.co/ZNK5xmN/pdycc8-1-removebg-preview.png').astype(str)
 
 # Calculate PERCENTAGE_TO_GOAL, handling division by zero
-df['PERCENTAGE_TO_GOAL'] = np.where(df['GOAL'] == 0, 1, df['APPOINTMENTS'] / df['GOAL'])
+df['PERCENTAGE_TO_GOAL'] = np.where(
+    df['GOAL'] == 0, 100,  # If GOAL is 0, set percentage to 100
+    np.minimum((df['APPOINTMENTS'] / df['GOAL']) * 100, 100)  # Otherwise, calculate the percentage and cap it at 100
+)
 
 # Inject custom CSS for the layout and styling
 st.markdown("""
@@ -114,24 +117,32 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.dataframe(df)
+# Define the number of columns you want (e.g., 3 columns)
+num_columns = 6
 
-# Loop through each row in the DataFrame
+# Create the columns
+cols = st.columns(num_columns)
+
+# Loop through each row in the DataFrame and distribute the cards across the columns
 for index, row in df.iterrows():
+    # Get the column index based on the loop index to distribute rows across columns
+    col = cols[index % num_columns]
+
     percentage_to_goal = row['PERCENTAGE_TO_GOAL']
     goal_value = row['GOAL']
     appointments_value = row['APPOINTMENTS']
-    
-    st.markdown(f"""
-        <div class="card">
-            <div class="profile-section">
-                <img src="{row['PROFILE_PICTURE']}" class="profile-pic" alt="Profile Picture">
-                <div class="name">{row['NAME']}</div>
+
+    with col:
+        st.markdown(f"""
+            <div class="card">
+                <div class="profile-section">
+                    <img src="{row['PROFILE_PICTURE']}" class="profile-pic" alt="Profile Picture">
+                    <div class="name">{row['NAME']}</div>
+                </div>
+                <div class="appointments">{appointments_value}</div>
+                <div class="progress-bar">
+                    <div class="progress-bar-fill" style="width: {percentage_to_goal}%;"></div>
+                    <div class="goal">{goal_value}</div>
+                </div>
             </div>
-            <div class="appointments">{appointments_value}</div>
-            <div class="progress-bar">
-                <div class="progress-bar-fill" style="width: {percentage_to_goal}%;"></div>
-                <div class="goal">{goal_value}</div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
