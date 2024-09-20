@@ -39,11 +39,6 @@ def create_snowflake_session():
 # Initialize Snowpark session
 session = create_snowflake_session()
 
-# Initialize session state for storing the edited dataframe
-if 'edit_df' not in st.session_state:
-    st.session_state['edit_df'] = edit_df.copy()  # Store the original dataframe in session state
-
-
 # Function to execute a SQL query and return a pandas DataFrame
 def run_query(query):
     return session.sql(query).to_pandas()
@@ -113,6 +108,10 @@ merged_df['TYPE'] = merged_df['TYPE'].apply(lambda x: x if x in valid_types else
 # Prepare the dataframe for editing
 edit_df = merged_df[['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'SALESFORCE_ID']].copy()
 
+# Initialize session state
+if 'filtered_edit_df' not in st.session_state:
+    st.session_state['filtered_edit_df'] = edit_df.copy()
+
 # Display the editable dataframe
 st.write("## 🎯 Edit Closer Targets")
 
@@ -127,7 +126,7 @@ def get_type_options(filtered_df):
     return ['All Channels'] + sorted(filtered_df['TYPE'].unique())
 
 # Initialize with the full dataframe
-filtered_edit_df = edit_df.copy()
+filtered_edit_df = st.session_state['filtered_edit_df'].copy()
 
 # Create columns for the filters
 cols1, cols2, cols3 = st.columns(3)
@@ -220,6 +219,9 @@ if submitted:
     if changes.empty:
         st.info("No changes detected.")
     else:
+        # Update session state with new edited data
+        st.session_state['filtered_edit_df'].update(edited_df)
+
         # Iterate over the changed rows
         for idx in changes.index.unique():
             row = edited_df.loc[idx]
@@ -232,6 +234,8 @@ if submitted:
             new_market = row['MARKET']
             profile_picture = row['PROFILE_PICTURE']
 
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
             # Convert boolean to 'Yes'/'No' for storage if needed
             active_str = 'Yes' if new_active == 'True' else 'No'
 
@@ -240,9 +244,6 @@ if submitted:
             profile_picture = profile_picture.replace("'", "''")
             new_type = new_type.replace("'", "''")
             new_market = new_market.replace("'", "''")
-
-            # Get current timestamp
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             # Build the UPSERT SQL query (update or insert)
             query = f"""
