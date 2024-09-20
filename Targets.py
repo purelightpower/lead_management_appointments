@@ -230,6 +230,7 @@ if submitted:
             new_active = row['ACTIVE']
             new_type = row['TYPE']
             new_market = row['MARKET']
+            profile_picture = row['PROFILE_PICTURE']
 
             # Convert boolean to 'Yes'/'No' for storage if needed
             active_str = 'Yes' if new_active else 'No'
@@ -249,10 +250,11 @@ if submitted:
                     ACTIVE = '{active_str}',
                     TYPE = '{new_type}',
                     MARKET = '{new_market}',
-                    TIMESTAMP = '{timestamp}'
+                    TIMESTAMP = '{timestamp}',
+                    PROFILE_PICTURE = '{profile_picture}
             WHEN NOT MATCHED THEN
-                INSERT (CLOSER_ID, NAME, GOAL, RANK, ACTIVE, TYPE, MARKET, TIMESTAMP)
-                VALUES ('{closer_id}', '{full_name}', {new_goal}, {new_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}');
+                INSERT (CLOSER_ID, NAME, GOAL, RANK, ACTIVE, TYPE, MARKET, TIMESTAMP, PROFILE_PICTURE)
+                VALUES ('{closer_id}', '{full_name}', {new_goal}, {new_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}', '{profile_picture}');
             """
             try:
                 session.sql(query).collect()
