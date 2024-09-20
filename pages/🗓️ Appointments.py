@@ -34,7 +34,7 @@ def run_query(query):
     return session.sql(query).to_pandas()
 
 goals_query = """
-    SELECT *
+    SELECT GOAL, MARKET, TYPE, RANK, ACTIVE, CLOSER_ID, PROFILE_PICTURE, CONCAT(SPLIT_PART(NAME, ' ', 1), ' ', LEFT(SPLIT_PART(NAME, ' ', 2),1), '.') NAME
     FROM raw.snowflake.lm_appointments
 """
 
