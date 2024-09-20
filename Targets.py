@@ -7,7 +7,6 @@ from snowflake.snowpark.functions import col
 
 st.set_page_config(
     page_title="Appointment Dashboard",
-    #page_icon="",
     initial_sidebar_state="collapsed"
 )
 
@@ -15,20 +14,14 @@ st.logo("https://i.ibb.co/bbH9pgH/Purelight-Logo.webp")
 
 hide_streamlit_style = """
     <style>
-    #MainMenu {visibility: hidden;}  /* Hides the hamburger menu */
-    footer {visibility: hidden;}  /* Hides the footer */
-    header {visibility: hidden;}  /* Hides the header where Fork/GitHub options might be */
-    
-    /* Reduces padding from the main content container */
-    .css-10trblm {padding-top: 0px; padding-bottom: 0px;}  /* Content padding */
-    
-    /* Reduces top padding for the main app layout */
-    .css-1d391kg {padding-top: 0px !important;}  /* Top padding for content */
-    
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .css-10trblm {padding-top: 0px; padding-bottom: 0px;}
+    .css-1d391kg {padding-top: 0px !important;}
     </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
 
 # Function to create a Snowflake session
 def create_snowflake_session():
@@ -45,6 +38,11 @@ def create_snowflake_session():
 
 # Initialize Snowpark session
 session = create_snowflake_session()
+
+# Initialize session state for storing the edited dataframe
+if 'edit_df' not in st.session_state:
+    st.session_state['edit_df'] = edit_df.copy()  # Store the original dataframe in session state
+
 
 # Function to execute a SQL query and return a pandas DataFrame
 def run_query(query):
@@ -86,16 +84,12 @@ merged_df = df_users.merge(
     profile_picture, on='FULL_NAME', how='left'
 )
 
-# Continue with your existing data processing...
-
-# Example continuation:
-# (Ensure column names match your DataFrame)
+# Rename and drop columns as needed
 merged_df = merged_df.rename(columns={
     'FULL_NAME': 'FULL_NAME',
     'PROFILE_PICTURE_y': 'PROFILE_PICTURE'
 })
 
-# Drop redundant columns
 if 'CLOSER' in merged_df.columns:
     merged_df = merged_df.drop(columns=['CLOSER'])
 
@@ -110,7 +104,7 @@ merged_df['PROFILE_PICTURE'] = merged_df['PROFILE_PICTURE'].fillna('https://i.ib
 # Convert 'ACTIVE' column to boolean
 merged_df['ACTIVE'] = merged_df['ACTIVE'].fillna('No').astype(str)
 merged_df['ACTIVE'] = merged_df['ACTIVE'].str.strip().str.lower().map({'yes': True, 'no': False})
-merged_df['ACTIVE'] = merged_df['ACTIVE'].fillna(False)  # Default to False if any other value
+merged_df['ACTIVE'] = merged_df['ACTIVE'].fillna(False)
 
 # Ensure 'TYPE' column has valid options
 valid_types = ['None', '🏃 Field Marketing', '🏠 Web To Home']
@@ -118,8 +112,6 @@ merged_df['TYPE'] = merged_df['TYPE'].apply(lambda x: x if x in valid_types else
 
 # Prepare the dataframe for editing
 edit_df = merged_df[['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'SALESFORCE_ID']].copy()
-
-# Continue with your Streamlit app...
 
 # Display the editable dataframe
 st.write("## 🎯 Edit Closer Targets")
@@ -169,9 +161,12 @@ filtered_edit_df = filtered_edit_df.sort_values(by='FULL_NAME')
 
 # Wrap the data editor and save button in a form
 with st.form('editor_form'):
+    # Reset indices for comparison
+    original_filtered_df = filtered_edit_df.copy().reset_index(drop=True)
+    
     # Configure the data editor with column configurations
     edited_df = st.data_editor(
-        filtered_edit_df,
+        filtered_edit_df.reset_index(drop=True),
         column_order=['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK'],
         disabled={'FULL_NAME': True, 'PROFILE_PICTURE': True},
         hide_index=True,
@@ -211,12 +206,17 @@ with st.form('editor_form'):
 
 # Process the form submission
 if submitted:
-    # Get the original data for the filtered rows
-    original_filtered_df = edit_df.loc[edited_df.index]
-    
-    # Find the rows where any columns have changed
+    # Normalize data types before comparison
+    edited_df = edited_df.astype(str)
+    original_filtered_df = original_filtered_df.astype(str)
+
+    # Strip whitespaces
+    edited_df = edited_df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+    original_filtered_df = original_filtered_df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+
+    # Compare the edited data with the original data
     changes = edited_df.compare(original_filtered_df)
-    
+
     if changes.empty:
         st.info("No changes detected.")
     else:
@@ -233,7 +233,7 @@ if submitted:
             profile_picture = row['PROFILE_PICTURE']
 
             # Convert boolean to 'Yes'/'No' for storage if needed
-            active_str = 'Yes' if new_active else 'No'
+            active_str = 'Yes' if new_active == 'True' else 'No'
 
             # Escape single quotes in strings to avoid SQL syntax issues
             full_name = full_name.replace("'", "''")
