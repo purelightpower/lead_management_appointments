@@ -117,32 +117,39 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Define the number of columns you want (e.g., 3 columns)
-num_columns = 6
+# Define the number of cards per row (e.g., 3, 4, 6)
+cards_per_row = 6
 
-# Create the columns
-cols = st.columns(num_columns)
+# Group by MARKET and loop over each group
+for market, group_df in df.groupby('MARKET'):
+    # Add a header for each market group
+    st.divider()
+    st.header(market)
+    
+    # Break the group into chunks (rows of cards)
+    for i in range(0, len(group_df), cards_per_row):
+        row_df = group_df.iloc[i:i + cards_per_row]  # Get a chunk of cards (one row)
 
-# Loop through each row in the DataFrame and distribute the cards across the columns
-for index, row in df.iterrows():
-    # Get the column index based on the loop index to distribute rows across columns
-    col = cols[index % num_columns]
+        # Create columns for this row
+        cols = st.columns(cards_per_row)
 
-    percentage_to_goal = row['PERCENTAGE_TO_GOAL']
-    goal_value = row['GOAL']
-    appointments_value = row['APPOINTMENTS']
+        # Loop through each card in the row and assign it to a column
+        for col, (_, row) in zip(cols, row_df.iterrows()):
+            percentage_to_goal = row['PERCENTAGE_TO_GOAL']
+            goal_value = row['GOAL']
+            appointments_value = row['APPOINTMENTS']
 
-    with col:
-        st.markdown(f"""
-            <div class="card">
-                <div class="profile-section">
-                    <img src="{row['PROFILE_PICTURE']}" class="profile-pic" alt="Profile Picture">
-                    <div class="name">{row['NAME']}</div>
-                </div>
-                <div class="appointments">{appointments_value}</div>
-                <div class="progress-bar">
-                    <div class="progress-bar-fill" style="width: {percentage_to_goal}%;"></div>
-                    <div class="goal">{goal_value}</div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+            with col:
+                st.markdown(f"""
+                    <div class="card">
+                        <div class="profile-section">
+                            <img src="{row['PROFILE_PICTURE']}" class="profile-pic" alt="Profile Picture">
+                            <div class="name">{row['NAME']}</div>
+                        </div>
+                        <div class="appointments">{appointments_value}</div>
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" style="width: {percentage_to_goal}%;"></div>
+                            <div class="goal">{goal_value}</div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
