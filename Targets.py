@@ -235,6 +235,12 @@ if submitted:
             # Convert boolean to 'Yes'/'No' for storage if needed
             active_str = 'Yes' if new_active else 'No'
 
+            # Escape single quotes in strings to avoid SQL syntax issues
+            full_name = full_name.replace("'", "''")
+            profile_picture = profile_picture.replace("'", "''")
+            new_type = new_type.replace("'", "''")
+            new_market = new_market.replace("'", "''")
+
             # Get current timestamp
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
