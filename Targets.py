@@ -92,7 +92,7 @@ merged_df = df_users.merge(
 # (Ensure column names match your DataFrame)
 merged_df = merged_df.rename(columns={
     'FULL_NAME': 'FULL_NAME',
-    'PROFILE_PICTURE': 'PROFILE_PICTURE'
+    'PROFILE_PICTURE_y': 'PROFILE_PICTURE'
 })
 
 # Drop redundant columns

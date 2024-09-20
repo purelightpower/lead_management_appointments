@@ -37,6 +37,27 @@ goals_query = """
     SELECT *
     FROM raw.snowflake.lm_appointments
 """
+
+appts_query = """
+    SELECT closer, closer_id, COUNT(first_scheduled_close_start_at) APPOINTMENTS
+    FROM operational.salesforce.vw_opportunities
+    WHERE sales_channel = 'Web To Home' AND WEEK(first_scheduled_close_start_at) = WEEK(CURRENT_DATE) AND YEAR(first_scheduled_close_start_at) = YEAR(CURRENT_DATE)
+    GROUP BY closer, closer_id
+"""
+
 df_goals = run_query(goals_query)
 
-st.dataframe(df_goals)
+df_appts = run_query(appts_query)
+
+df = pd.merge(df_goals, df_appts, left_on= 'CLOSER_ID', right_on = 'CLOSER_ID', how = 'left')
+
+df['PERCENTAGE_TO_GOAL'] = df['APPOINTMENTS'] / df['GOAL']
+
+#for index, row in df.iterrows().container(border=True):
+   cols1, cols2 = st.columns(1,3)
+   with cols1:
+        st.image()
+
+    with cols2:
+        st.write(f"{row['CLOSER']}")
+        st.progress(float(row['PERCENTAGE_TO_GOAL']))
