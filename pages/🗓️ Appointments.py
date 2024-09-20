@@ -7,7 +7,7 @@ from snowflake.snowpark.functions import col
 
 st.set_page_config(
     page_title="Appointment Dashboard",
-    #page_icon="",
+    layout = "wide",
     initial_sidebar_state="collapsed"
 )
 
@@ -121,7 +121,7 @@ for index, row in df.iterrows():
         <div class="card">
             <div class="profile-section">
                 <img src="{row['PROFILE_PICTURE']}" class="profile-pic" alt="Profile Picture">
-                <div class="name">{row['CLOSER']}</div>
+                <div class="name">{row['NAME']}</div>
             </div>
             <div class="appointments">{appointments_value}</div>
             <div class="progress-bar">

@@ -39,36 +39,43 @@ def create_snowflake_session():
 # Initialize Snowpark session
 session = create_snowflake_session()
 
-# Function to execute a SQL query and return a pandas DataFrame
-def run_query(query):
-    return session.sql(query).to_pandas()
+# Cache functions to avoid redundant queries
+@st.cache_data
+def get_users():
+    users_query = """
+        SELECT DISTINCT FULL_NAME, SALESFORCE_ID
+        FROM operational.airtable.vw_users 
+        WHERE role_type = 'Closer' AND term_date IS NULL
+    """
+    return session.sql(users_query).to_pandas()
 
-# Query to get full names of 'Closer' users
-users_query = """
-    SELECT DISTINCT FULL_NAME, SALESFORCE_ID
-    FROM operational.airtable.vw_users 
-    WHERE role_type = 'Closer' AND term_date IS NULL
-"""
-df_users = run_query(users_query)
+@st.cache_data
+def get_profile_pictures():
+    profile_picture_query = """
+        SELECT FULL_NAME, PROFILE_PICTURE
+        FROM operational.airtable.vw_users
+    """
+    return session.sql(profile_picture_query).to_pandas()
 
-# Get current targets
-current_targets_query = """
-    SELECT * FROM analytics.ad_hoc.lm_appts_test
-"""
-current_targets = run_query(current_targets_query)
+@st.cache_data
+def get_appointments():
+    appointments_query = """
+        SELECT * FROM raw.snowflake.lm_appointments
+    """
+    return session.sql(appointments_query).to_pandas()
 
-# Get profile pictures
-profile_picture_query = """
-    SELECT FULL_NAME, PROFILE_PICTURE
-    FROM operational.airtable.vw_users
-"""
-profile_picture = run_query(profile_picture_query)
+@st.cache_data
+def get_current_targets():
+    current_targets_query = """
+        SELECT * FROM analytics.ad_hoc.lm_appts_test
+    """
+    return session.sql(current_targets_query).to_pandas()
 
-# Get appointments
-appointments_query = """
-    SELECT * FROM raw.snowflake.lm_appointments
-"""
-appointments = run_query(appointments_query)
+# Load data
+df_users = get_users()
+profile_picture = get_profile_pictures()
+appointments = get_appointments()
+current_targets = get_current_targets()
 
 # Merge the dataframes on the full name
 merged_df = df_users.merge(
@@ -222,30 +229,21 @@ if submitted:
         # Update session state with new edited data
         st.session_state['filtered_edit_df'].update(edited_df)
 
-        # Iterate over the changed rows
+        # Accumulate queries for batch execution
+        queries = []
         for idx in changes.index.unique():
             row = edited_df.loc[idx]
-            full_name = row['FULL_NAME']
-            closer_id = row['SALESFORCE_ID']
+            full_name = row['FULL_NAME'].replace("'", "''")
             new_goal = int(row['GOAL'])
             new_rank = int(row['RANK'])
             new_active = row['ACTIVE']
             new_type = row['TYPE']
             new_market = row['MARKET']
             profile_picture = row['PROFILE_PICTURE']
-
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            # Convert boolean to 'Yes'/'No' for storage if needed
             active_str = 'Yes' if new_active == 'True' else 'No'
 
-            # Escape single quotes in strings to avoid SQL syntax issues
-            full_name = full_name.replace("'", "''")
-            profile_picture = profile_picture.replace("'", "''")
-            new_type = new_type.replace("'", "''")
-            new_market = new_market.replace("'", "''")
-
-            # Build the UPSERT SQL query (update or insert)
             query = f"""
             MERGE INTO raw.snowflake.lm_appointments AS target
             USING (SELECT '{full_name}' AS NAME) AS source
@@ -261,10 +259,15 @@ if submitted:
                     PROFILE_PICTURE = '{profile_picture}'
             WHEN NOT MATCHED THEN
                 INSERT (CLOSER_ID, NAME, GOAL, RANK, ACTIVE, TYPE, MARKET, TIMESTAMP, PROFILE_PICTURE)
-                VALUES ('{closer_id}', '{full_name}', {new_goal}, {new_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}', '{profile_picture}');
+                VALUES ('{row['SALESFORCE_ID']}', '{full_name}', {new_goal}, {new_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}', '{profile_picture}');
             """
-            try:
-                session.sql(query).collect()
-                st.success(f"Saved changes for {full_name}")
-            except Exception as e:
-                st.error(f"Error saving changes for {full_name}: {str(e)}")
+            queries.append(query)
+
+        # Execute all queries in a batch
+        with st.spinner('Saving changes...'):
+            for query in queries:
+                try:
+                    session.sql(query).collect()
+                    st.success(f"Saved changes for {row['FULL_NAME']}")
+                except Exception as e:
+                    st.error(f"Error saving changes for {row['FULL_NAME']}: {str(e)}")
