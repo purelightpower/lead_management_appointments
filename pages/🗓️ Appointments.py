@@ -120,6 +120,27 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+
+st.sidebar.title("Filters")
+
+# Add the Market multiselect filter below the "Filters" title
+if 'selected_markets' not in st.session_state:
+    st.session_state['selected_markets'] = ['All Markets']  # Default value
+
+selected_markets = st.sidebar.multiselect(
+    'Filter by Market', 
+    ['All Markets'] + sorted(df['MARKET'].unique()),
+    default=st.session_state['selected_markets'],
+    key='market_multiselect'
+)
+
+# Save the selected market filters to session state
+st.session_state['selected_markets'] = selected_markets
+
+# Apply the market filter to the DataFrame
+if 'All Markets' not in selected_markets:
+    df = df[df['MARKET'].isin(selected_markets)]
+
 # Define the number of cards per row (e.g., 3, 4, 6)
 cards_per_row = 6
 
