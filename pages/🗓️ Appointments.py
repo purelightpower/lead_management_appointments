@@ -128,7 +128,7 @@ if 'selected_markets' not in st.session_state:
     st.session_state['selected_markets'] = ['All Markets']  # Default value
 
 selected_markets = st.sidebar.multiselect(
-    'Filter by Market', 
+    'Market', 
     ['All Markets'] + sorted(df['MARKET'].unique()),
     default=st.session_state['selected_markets'],
     key='market_multiselect'
