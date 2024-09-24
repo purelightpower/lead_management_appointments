@@ -174,37 +174,41 @@ else:
 # Define the number of cards per row (e.g., 3, 4, 6)
 cards_per_row = 6
 
+market_cols = st.columns(2)
+
 # Group by MARKET and loop over each group
 for idx, (market, group_df) in enumerate(df.groupby('MARKET')):
-    # Add a header for each market group
-    if idx > 0:  # Only add divider after the first market group
-        st.divider()
-    st.header(market, help = 'Test')
+    # Alternate between the two columns for each market
+    col = market_cols[idx % 2]
     
-    # Break the group into chunks (rows of cards)
-    for i in range(0, len(group_df), cards_per_row):
-        row_df = group_df.iloc[i:i + cards_per_row]  # Get a chunk of cards (one row)
+    with col:
+        # Add a header for each market group
+        st.header(market, help='Test')
 
-        # Create columns for this row
-        cols = st.columns(cards_per_row)
+        # Break the group into chunks (rows of cards)
+        for i in range(0, len(group_df), cards_per_row):
+            row_df = group_df.iloc[i:i + cards_per_row]  # Get a chunk of cards (one row)
 
-        # Loop through each card in the row and assign it to a column
-        for col, (_, row) in zip(cols, row_df.iterrows()):
-            percentage_to_goal = row['PERCENTAGE_TO_GOAL']
-            goal_value = row['GOAL']
-            appointments_value = row['APPOINTMENTS']
+            # Create columns for this row (inside each market column)
+            cols = st.columns(cards_per_row)
 
-            with col:
-                st.markdown(f"""
-                    <div class="card">
-                        <div class="profile-section">
-                            <img src="{row['PROFILE_PICTURE']}" class="profile-pic" alt="Profile Picture">
-                            <div class="name">{row['NAME']}</div>
+            # Loop through each card in the row and assign it to a column
+            for col, (_, row) in zip(cols, row_df.iterrows()):
+                percentage_to_goal = row['PERCENTAGE_TO_GOAL']
+                goal_value = row['GOAL']
+                appointments_value = row['APPOINTMENTS']
+
+                with col:
+                    st.markdown(f"""
+                        <div class="card">
+                            <div class="profile-section">
+                                <img src="{row['PROFILE_PICTURE']}" class="profile-pic" alt="Profile Picture">
+                                <div class="name">{row['NAME']}</div>
+                            </div>
+                            <div class="appointments">{appointments_value}</div>
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" style="width: {percentage_to_goal}%;"></div>
+                                <div class="goal">{goal_value}</div>
+                            </div>
                         </div>
-                        <div class="appointments">{appointments_value}</div>
-                        <div class="progress-bar">
-                            <div class="progress-bar-fill" style="width: {percentage_to_goal}%;"></div>
-                            <div class="goal">{goal_value}</div>
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
