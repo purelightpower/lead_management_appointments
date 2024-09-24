@@ -39,12 +39,19 @@ goals_query = """
 """
 
 appts_query = """
-    SELECT closer, closer_id, COUNT(first_scheduled_close_start_at) APPOINTMENTS
-    FROM operational.salesforce.vw_opportunities
-    WHERE sales_channel = 'Web To Home' 
-    AND WEEK(first_scheduled_close_start_at) = WEEK(CURRENT_DATE) 
-    AND YEAR(first_scheduled_close_start_at) = YEAR(CURRENT_DATE)
-    GROUP BY closer, closer_id
+    SELECT owner_id closer_id, COUNT(first_scheduled_close_start_date_time_c) APPOINTMENTS, CASE
+        WHEN WEEK(first_scheduled_close_start_date_time_c) = WEEK(DATEADD("day", -7, CURRENT_DATE()))
+            AND YEAR(first_scheduled_close_start_date_time_c) = YEAR(DATEADD("day", -7, CURRENT_DATE())) THEN 'Last Week'
+        WHEN WEEK(first_scheduled_close_start_date_time_c) = WEEK(CURRENT_DATE())
+            AND YEAR(first_scheduled_close_start_date_time_c) = YEAR(CURRENT_DATE) THEN 'This Week'
+        WHEN WEEK(first_scheduled_close_start_date_time_c) = WEEK(DATEADD("day", 7, CURRENT_DATE()))
+            AND YEAR(first_scheduled_close_start_date_time_c) = YEAR(DATEADD("day", 7, CURRENT_DATE())) THEN 'Next Week'
+    END timeframe,
+    CURRENT_TIMESTAMP last_updated_at
+    FROM raw.salesforce.opportunity_formulas
+    WHERE sales_channel_c = 'Web To Home' 
+    AND timeframe IS NOT NULL
+    GROUP BY closer_id, timeframe
 """
 
 df_goals = run_query(goals_query)
@@ -52,6 +59,7 @@ df_appts = run_query(appts_query)
 
 df = pd.merge(df_goals, df_appts, left_on='CLOSER_ID', right_on='CLOSER_ID', how='left')
 
+df["TIMEFRAME"] = df["TIMEFRAME"].fillna("This Week").astype(str)
 df["APPOINTMENTS"] = df["APPOINTMENTS"].fillna(0).astype(int)
 df['PROFILE_PICTURE'] = df['PROFILE_PICTURE'].fillna('https://i.ibb.co/ZNK5xmN/pdycc8-1-removebg-preview.png').astype(str)
 
@@ -140,6 +148,22 @@ st.session_state['selected_markets'] = selected_markets
 # Apply the market filter to the DataFrame
 if 'All Markets' not in selected_markets:
     df = df[df['MARKET'].isin(selected_markets)]
+
+if 'selected_timeframe' not in st.session_state:
+    st.session_state['selected_timeframe'] = 'This Week'
+
+selected_timeframe = st.sidebar.selectbox(
+    'Timeframe',
+    ['This Week', 'Next Week', 'Last Week'],
+    index=['This Week', 'Next Week', 'Last Week'].index(st.session_state['selected_timeframe']),
+    key='timeframe_selectbox'
+)
+
+# Save the selected timeframe filter to session state
+st.session_state['selected_timeframe'] = selected_timeframe
+
+# Apply the timeframe filter to the DataFrame
+df = df[df['TIMEFRAME'] == selected_timeframe]
 
 # Define the number of cards per row (e.g., 3, 4, 6)
 cards_per_row = 6
