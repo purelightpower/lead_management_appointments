@@ -76,15 +76,6 @@ st.markdown("""
     .css-18e3th9 {
         padding-top: 0 !important;  /* Remove the space at the top */
     }
-    .market-container {
-        display: flex;
-        flex-wrap: wrap;  /* Allow wrapping of content */
-        gap: 20px;  /* Space between market sections */
-    }
-    .market-section {
-        flex: 1 1 48%;  /* Flex basis of 48% to allow two columns and wrap */
-        margin-bottom: 20px;
-    }
     .card {
         background-color: #1e1e1e;
         padding: 10px;
@@ -183,39 +174,41 @@ else:
 # Define the number of cards per row (e.g., 3, 4, 6)
 cards_per_row = 6
 
-# Group by MARKET and loop over each group with a flexible layout
-st.markdown('<div class="market-container">', unsafe_allow_html=True)
+market_cols = st.columns(2)
 
+# Group by MARKET and loop over each group
 for idx, (market, group_df) in enumerate(df.groupby('MARKET')):
-    # Start a new market section
-    st.markdown(f'<div class="market-section">', unsafe_allow_html=True)
+    # Alternate between the two columns for each market
+    col = market_cols[idx % 2]
+    
+    with col:
+        # Add a header for each market group
+        st.header(market, help='Test')
 
-    # Add a header for each market group
-    st.header(market, help='Market')
+        # Break the group into chunks (rows of cards)
+        for i in range(0, len(group_df), cards_per_row):
+            row_df = group_df.iloc[i:i + cards_per_row]  # Get a chunk of cards (one row)
 
-    # Break the group into chunks (rows of cards)
-    for i in range(0, len(group_df), cards_per_row):
-        row_df = group_df.iloc[i:i + cards_per_row]  # Get a chunk of cards (one row)
+            # Create columns for this row (inside each market column)
+            cols = st.columns(cards_per_row)
 
-        # Loop through each card in the row and assign it to the market section
-        for _, row in row_df.iterrows():
-            percentage_to_goal = row['PERCENTAGE_TO_GOAL']
-            goal_value = row['GOAL']
-            appointments_value = row['APPOINTMENTS']
+            # Loop through each card in the row and assign it to a column
+            for col, (_, row) in zip(cols, row_df.iterrows()):
+                percentage_to_goal = row['PERCENTAGE_TO_GOAL']
+                goal_value = row['GOAL']
+                appointments_value = row['APPOINTMENTS']
 
-            st.markdown(f"""
-                <div class="card">
-                    <div class="profile-section">
-                        <img src="{row['PROFILE_PICTURE']}" class="profile-pic" alt="Profile Picture">
-                        <div class="name">{row['NAME']}</div>
-                    </div>
-                    <div class="appointments">{appointments_value}</div>
-                    <div class="progress-bar">
-                        <div class="progress-bar-fill" style="width: {percentage_to_goal}%;"></div>
-                        <div class="goal">{goal_value}</div>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-
-    # Close the market section
-    st.markdown('</div>', unsafe_allow_html=True)
+                with col:
+                    st.markdown(f"""
+                        <div class="card">
+                            <div class="profile-section">
+                                <img src="{row['PROFILE_PICTURE']}" class="profile-pic" alt="Profile Picture">
+                                <div class="name">{row['NAME']}</div>
+                            </div>
+                            <div class="appointments">{appointments_value}</div>
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" style="width: {percentage_to_goal}%;"></div>
+                                <div class="goal">{goal_value}</div>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
