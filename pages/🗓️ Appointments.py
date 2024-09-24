@@ -172,7 +172,7 @@ else:
     st.error("TIMEFRAME column not found in the dataframe.")
 
 # Define the number of cards per row (e.g., 3, 4, 6)
-cards_per_row = 6
+cards_per_row = 4
 
 market_cols = st.columns(2)
 
