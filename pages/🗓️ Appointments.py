@@ -149,21 +149,26 @@ st.session_state['selected_markets'] = selected_markets
 if 'All Markets' not in selected_markets:
     df = df[df['MARKET'].isin(selected_markets)]
 
+# Set the initial state for 'selected_timeframe' to 'This Week' if not already set
 if 'selected_timeframe' not in st.session_state:
     st.session_state['selected_timeframe'] = 'This Week'
 
+# Sidebar filter for Timeframe
 selected_timeframe = st.sidebar.selectbox(
     'Timeframe',
-    ['This Week', 'Next Week', 'Last Week'],
-    index=['This Week', 'Next Week', 'Last Week'].index(st.session_state['selected_timeframe']),
-    key='timeframe_selectbox'
+    ['This Week', 'Next Week', 'Last Week'],  # Ensure consistent ordering here
+    index=['This Week', 'Next Week', 'Last Week'].index(st.session_state['selected_timeframe'])  # Default to session state
 )
 
-# Save the selected timeframe filter to session state
-st.session_state['selected_timeframe'] = selected_timeframe
+# Update session state only if the selected timeframe has changed
+if selected_timeframe != st.session_state['selected_timeframe']:
+    st.session_state['selected_timeframe'] = selected_timeframe
 
 # Apply the timeframe filter to the DataFrame
-df = df[df['TIMEFRAME'] == selected_timeframe]
+if 'TIMEFRAME' in df.columns:
+    df = df[df['TIMEFRAME'] == st.session_state['selected_timeframe']]  # Use session state value for filtering
+else:
+    st.error("TIMEFRAME column not found in the dataframe.")
 
 # Define the number of cards per row (e.g., 3, 4, 6)
 cards_per_row = 6
