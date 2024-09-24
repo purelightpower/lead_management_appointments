@@ -76,13 +76,6 @@ st.markdown("""
     .css-18e3th9 {
         padding-top: 0 !important;  /* Remove the space at the top */
     }
-    .market-group {
-        border: 2px solid #FF6347;  /* Tomato color border for the market group */
-        border-radius: 10px;
-        padding: 10px;
-        margin-bottom: 20px;
-        background-color: #1e1e1e;
-    }
     .card {
         background-color: #1e1e1e;
         padding: 10px;
@@ -219,3 +212,5 @@ for idx, (market, group_df) in enumerate(df.groupby('MARKET')):
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
+            # Add a divider below each market group
+        st.divider()  # This will add a horizontal line below each market section
