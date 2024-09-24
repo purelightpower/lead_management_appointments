@@ -70,7 +70,6 @@ df['PERCENTAGE_TO_GOAL'] = np.where(
     np.minimum((df['APPOINTMENTS'] / df['GOAL']) * 100, 100)  # Otherwise, calculate the percentage and cap it at 100
 )
 
-# Inject custom CSS for the layout and remove the space at the top
 st.markdown("""
     <style>
     .css-18e3th9 {
@@ -96,7 +95,7 @@ st.markdown("""
         margin-right: 15px;
     }
     .name {
-        font-size: 18px;
+        font-size: 16px; /* Reduced from 18px for smaller titles */
         font-weight: bold;
     }
     .appointments {
@@ -113,7 +112,7 @@ st.markdown("""
         margin-bottom: 10px;
     }
     .progress-bar-fill {
-        background-color: #FF6347; /* Tomato color for the progress bar */
+        background-color: #FF6347;
         height: 100%;
         border-radius: 25px;
     }
@@ -125,6 +124,9 @@ st.markdown("""
         font-size: 16px;
         color: white;
         font-weight: bold;
+    }
+    .css-1d391kg { /* New class for the market headers */
+        margin-bottom: 0 !important; /* Removes extra space below headers */
     }
     </style>
 """, unsafe_allow_html=True)
@@ -174,12 +176,12 @@ else:
 # Define the number of cards per row (e.g., 3, 4, 6)
 cards_per_row = 3
 
-market_cols = st.columns(2)
+market_cols = st.columns(3)
 
 # Group by MARKET and loop over each group
 for idx, (market, group_df) in enumerate(df.groupby('MARKET')):
     # Alternate between the two columns for each market
-    col = market_cols[idx % 2]
+    col = market_cols[idx % 3]
     
     with col:
         # Add a header for each market group
@@ -212,5 +214,3 @@ for idx, (market, group_df) in enumerate(df.groupby('MARKET')):
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
-            # Add a divider below each market group
-        st.divider()  # This will add a horizontal line below each market section
