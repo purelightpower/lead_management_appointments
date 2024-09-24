@@ -108,7 +108,7 @@ merged_df['ACTIVE'] = merged_df['ACTIVE'].fillna(False)
 
 # Ensure 'TYPE' column has valid options
 valid_types = ['🏠🏃 Hybrid', '🏃 Field Marketing', '🏠 Web To Home']
-merged_df['TYPE'] = merged_df['TYPE'].apply(lambda x: x if x in valid_types else 'None')
+merged_df['TYPE'] = merged_df['TYPE'].apply(lambda x: x if x in valid_types else '🏠🏃 Hybrid')
 
 # Prepare the dataframe for editing
 edit_df = merged_df[['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'FM_GOAL', 'FM_RANK', 'SALESFORCE_ID']].copy()
