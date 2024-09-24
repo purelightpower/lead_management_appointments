@@ -179,7 +179,7 @@ for idx, (market, group_df) in enumerate(df.groupby('MARKET')):
     # Add a header for each market group
     if idx > 0:  # Only add divider after the first market group
         st.divider()
-    st.header(market)
+    st.header(market, help = 'Test')
     
     # Break the group into chunks (rows of cards)
     for i in range(0, len(group_df), cards_per_row):
