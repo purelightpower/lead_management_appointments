@@ -34,11 +34,10 @@ session = create_snowflake_session()
 def run_query(query):
     return session.sql(query).to_pandas()
 
-with st.spinner('Uploading your dashboard...'):
-    goals_query = """
-        SELECT GOAL, MARKET, TYPE, RANK, ACTIVE, CLOSER_ID, PROFILE_PICTURE, CONCAT(SPLIT_PART(NAME, ' ', 1), ' ', LEFT(SPLIT_PART(NAME, ' ', 2),1), '.') NAME
-        FROM raw.snowflake.lm_appointments
-    """
+goals_query = """
+    SELECT GOAL, MARKET, TYPE, RANK, ACTIVE, CLOSER_ID, PROFILE_PICTURE, CONCAT(SPLIT_PART(NAME, ' ', 1), ' ', LEFT(SPLIT_PART(NAME, ' ', 2),1), '.') NAME
+    FROM raw.snowflake.lm_appointments
+"""
 
 appts_query = """
     SELECT owner_id closer_id, COUNT(first_scheduled_close_start_date_time_c) APPOINTMENTS, CASE
@@ -50,7 +49,7 @@ appts_query = """
             AND YEAR(first_scheduled_close_start_date_time_c) = YEAR(DATEADD("day", 7, CURRENT_DATE())) THEN 'Next Week'
     END timeframe,
     CURRENT_TIMESTAMP last_updated_at
-    FROM raw.salesforce.opportunity_formulas
+    FROM raw.salesforce.opportunity
     WHERE sales_channel_c = 'Web To Home' 
     AND timeframe IS NOT NULL
     GROUP BY closer_id, timeframe
@@ -59,8 +58,7 @@ appts_query = """
 df_goals = run_query(goals_query)
 df_appts = run_query(appts_query)
 
-with st.spinner('Combining data from multiple sources...'):
-    df = pd.merge(df_goals, df_appts, left_on='CLOSER_ID', right_on='CLOSER_ID', how='left')
+df = pd.merge(df_goals, df_appts, left_on='CLOSER_ID', right_on='CLOSER_ID', how='left')
 
 df["TIMEFRAME"] = df["TIMEFRAME"].fillna("This Week").astype(str)
 df["APPOINTMENTS"] = df["APPOINTMENTS"].fillna(0).astype(int)
@@ -150,8 +148,7 @@ st.session_state['selected_markets'] = selected_markets
 
 # Apply the market filter to the DataFrame
 if 'All Markets' not in selected_markets:
-    with st.spinner('Filtering by Market...'):
-        df = df[df['MARKET'].isin(selected_markets)]
+    df = df[df['MARKET'].isin(selected_markets)]
 
 # Set the initial state for 'selected_timeframe' to 'This Week' if not already set
 if 'selected_timeframe' not in st.session_state:
@@ -170,8 +167,7 @@ if selected_timeframe != st.session_state['selected_timeframe']:
 
 # Apply the timeframe filter to the DataFrame
 if 'TIMEFRAME' in df.columns:
-    with st.spinner('Filtering by timeframe...'):
-        df = df[df['TIMEFRAME'] == st.session_state['selected_timeframe']]  # Use session state value for filtering
+    df = df[df['TIMEFRAME'] == st.session_state['selected_timeframe']]  # Use session state value for filtering
 else:
     st.error("TIMEFRAME column not found in the dataframe.")
 
