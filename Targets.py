@@ -40,7 +40,6 @@ def create_snowflake_session():
 session = create_snowflake_session()
 
 # Cache functions to avoid redundant queries
-@st.cache_data
 def get_users():
     users_query = """
         SELECT DISTINCT FULL_NAME, SALESFORCE_ID
@@ -49,7 +48,6 @@ def get_users():
     """
     return session.sql(users_query).to_pandas()
 
-@st.cache_data
 def get_profile_pictures():
     profile_picture_query = """
         SELECT FULL_NAME, PROFILE_PICTURE
@@ -57,14 +55,12 @@ def get_profile_pictures():
     """
     return session.sql(profile_picture_query).to_pandas()
 
-@st.cache_data
 def get_appointments():
     appointments_query = """
         SELECT * FROM raw.snowflake.lm_appointments
     """
     return session.sql(appointments_query).to_pandas()
 
-@st.cache_data
 def get_current_targets():
     current_targets_query = """
         SELECT * FROM analytics.ad_hoc.lm_appts_test
@@ -100,7 +96,9 @@ merged_df['TARGET'] = merged_df['TARGET'].fillna(0).astype(int)
 merged_df['MARKET'] = merged_df['MARKET'].fillna('No Market').astype(str)
 merged_df['GOAL'] = merged_df['GOAL'].fillna(0).astype(int)
 merged_df['RANK'] = merged_df['RANK'].fillna(100).astype(int)
-merged_df['TYPE'] = merged_df['TYPE'].fillna('None').astype(str)
+merged_df['FM_GOAL'] = merged_df['FM_GOAL'].fillna(0).astype(int)
+merged_df['FM_RANK'] = merged_df['FM_RANK'].fillna(100).astype(int)
+merged_df['TYPE'] = merged_df['TYPE'].fillna('🏠🏃 Hybrid').astype(str)
 merged_df['PROFILE_PICTURE'] = merged_df['PROFILE_PICTURE'].fillna('https://i.ibb.co/ZNK5xmN/pdycc8-1-removebg-preview.png').astype(str)
 
 # Convert 'ACTIVE' column to boolean
@@ -109,11 +107,11 @@ merged_df['ACTIVE'] = merged_df['ACTIVE'].str.strip().str.lower().map({'yes': Tr
 merged_df['ACTIVE'] = merged_df['ACTIVE'].fillna(False)
 
 # Ensure 'TYPE' column has valid options
-valid_types = ['None', '🏃 Field Marketing', '🏠 Web To Home']
+valid_types = ['🏠🏃 Hybrid', '🏃 Field Marketing', '🏠 Web To Home']
 merged_df['TYPE'] = merged_df['TYPE'].apply(lambda x: x if x in valid_types else 'None')
 
 # Prepare the dataframe for editing
-edit_df = merged_df[['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'SALESFORCE_ID']].copy()
+edit_df = merged_df[['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'FM_GOAL', 'FM_RANK', 'SALESFORCE_ID']].copy()
 
 # Initialize session state
 if 'filtered_edit_df' not in st.session_state:
@@ -173,7 +171,7 @@ with st.form('editor_form'):
     # Configure the data editor with column configurations
     edited_df = st.data_editor(
         filtered_edit_df.reset_index(drop=True),
-        column_order=['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK'],
+        column_order=['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'FM_GOAL', 'FM_RANK'],
         disabled={'FULL_NAME': True, 'PROFILE_PICTURE': True},
         hide_index=True,
         use_container_width=True,
@@ -193,10 +191,16 @@ with st.form('editor_form'):
                 'Market'
             ),
             'GOAL': st.column_config.NumberColumn(
-                'Goal'
+                'W2H Goal'
             ),
             'RANK': st.column_config.NumberColumn(
-                'Rank'
+                'W2H Rank'
+            ),
+            'FM_GOAL': st.column_config.NumberColumn(
+                'FM Goal'
+            ),
+            'FM_RANK': st.column_config.NumberColumn(
+                'FM Rank'
             ),
             'TYPE': st.column_config.SelectboxColumn(
                 'Type',
@@ -236,6 +240,8 @@ if submitted:
             full_name = row['FULL_NAME'].replace("'", "''")
             new_goal = int(row['GOAL'])
             new_rank = int(row['RANK'])
+            fm_goal = int(row['FM_GOAL'])
+            fm_rank = int(row['FM_RANK'])
             new_active = row['ACTIVE']
             new_type = row['TYPE']
             new_market = row['MARKET']
@@ -252,14 +258,16 @@ if submitted:
                 UPDATE SET
                     GOAL = {new_goal},
                     RANK = {new_rank},
+                    FM_GOAL = {fm_goal},
+                    FM_RANK = {fm_rank},
                     ACTIVE = '{active_str}',
                     TYPE = '{new_type}',
                     MARKET = '{new_market}',
                     TIMESTAMP = '{timestamp}',
                     PROFILE_PICTURE = '{profile_picture}'
             WHEN NOT MATCHED THEN
-                INSERT (CLOSER_ID, NAME, GOAL, RANK, ACTIVE, TYPE, MARKET, TIMESTAMP, PROFILE_PICTURE)
-                VALUES ('{row['SALESFORCE_ID']}', '{full_name}', {new_goal}, {new_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}', '{profile_picture}');
+                INSERT (CLOSER_ID, NAME, GOAL, RANK, FM_GOAL, FM_RANK, ACTIVE, TYPE, MARKET, TIMESTAMP, PROFILE_PICTURE)
+                VALUES ('{row['SALESFORCE_ID']}', '{full_name}', {new_goal}, {new_rank}, {fm_goal}, {fm_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}', '{profile_picture}');
             """
             queries.append(query)
 

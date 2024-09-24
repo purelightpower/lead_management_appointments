@@ -199,7 +199,10 @@ for idx, (market, group_df) in enumerate(df.groupby('MARKET')):
                 percentage_to_goal = row['PERCENTAGE_TO_GOAL']
                 goal_value = row['GOAL']
                 appointments_value = row['APPOINTMENTS']
-
+                 # Choose progress bar color based on the percentage
+                
+                progress_color = "#FF6347" if percentage_to_goal < 100 else "#47C547"
+                
                 with col:
                     st.markdown(f"""
                         <div class="card">
@@ -209,7 +212,7 @@ for idx, (market, group_df) in enumerate(df.groupby('MARKET')):
                             </div>
                             <div class="appointments">{appointments_value}</div>
                             <div class="progress-bar">
-                                <div class="progress-bar-fill" style="width: {percentage_to_goal}%;"></div>
+                                <div class="progress-bar-fill" style="width: {percentage_to_goal}%;background-color: {progress_color};"></div>
                                 <div class="goal">{goal_value}</div>
                             </div>
                         </div>
