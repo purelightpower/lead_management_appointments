@@ -40,12 +40,19 @@ def create_snowflake_session():
 # Initialize Snowpark session
 session = create_snowflake_session()
 
-# Cache functions to avoid redundant queries
 def get_users():
     users_query = """
         SELECT DISTINCT FULL_NAME, SALESFORCE_ID
         FROM operational.airtable.vw_users 
         WHERE role_type = 'Closer' AND term_date IS NULL
+    """
+    return session.sql(users_query).to_pandas()
+
+# Cache functions to avoid redundant queries
+def get_market():
+    users_query = """
+        SELECT *
+        FROM raw.snowflake.lm_markets 
     """
     return session.sql(users_query).to_pandas()
 
@@ -70,9 +77,12 @@ def get_current_targets():
 
 # Load data
 df_users = get_users()
+df_markets = get_market()
 profile_picture = get_profile_pictures()
 appointments = get_appointments()
 current_targets = get_current_targets()
+unique_markets_df = get_appointments()[['MARKET']].drop_duplicates()
+
 
 # Merge the dataframes on the full name
 merged_df = df_users.merge(
@@ -280,3 +290,15 @@ if submitted:
                     st.success(f"Saved changes for {row['FULL_NAME']}")
                 except Exception as e:
                     st.error(f"Error saving changes for {row['FULL_NAME']}: {str(e)}")
+
+edited_df = st.data_editor(
+    df_markets,
+    num_rows="dynamic",  # This allows dynamic addition of rows
+    hide_index=True
+)
+
+# If you want to capture and store the edited data
+if st.button("Save Changes"):
+    # Example of saving the modified dataframe or processing it
+    st.write("Updated Options:")
+    st.write(edited_df)
