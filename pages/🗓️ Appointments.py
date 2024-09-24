@@ -174,14 +174,14 @@ else:
     st.error("TIMEFRAME column not found in the dataframe.")
 
 # Define the number of cards per row (e.g., 3, 4, 6)
-cards_per_row = 2
+cards_per_row = 3
 
-market_cols = st.columns(3)
+market_cols = st.columns(2)
 
 # Group by MARKET and loop over each group
 for idx, (market, group_df) in enumerate(df.groupby('MARKET')):
     # Alternate between the two columns for each market
-    col = market_cols[idx % 3]
+    col = market_cols[idx % 2]
     
     with col:
         # Add a header for each market group
