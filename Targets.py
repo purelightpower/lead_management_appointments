@@ -294,7 +294,8 @@ if submitted:
 edited_df = st.data_editor(
     df_markets,
     num_rows="dynamic",  # This allows dynamic addition of rows
-    hide_index=True
+    hide_index=True,
+    use_container_width=True
 )
 
 # If you want to capture and store the edited data
