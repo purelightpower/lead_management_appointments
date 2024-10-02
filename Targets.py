@@ -291,15 +291,74 @@ if submitted:
                 except Exception as e:
                     st.error(f"Error saving changes for {row['FULL_NAME']}: {str(e)}")
 
-edited_df = st.data_editor(
-    df_markets,
-    num_rows="dynamic",  # This allows dynamic addition of rows
-    hide_index=True,
-    use_container_width=True
-)
+# --- Market Form ---
+st.divider()
+st.write("## 🏙️ Edit Markets")
 
-# If you want to capture and store the edited data
-if st.button("Save Changes"):
-    # Example of saving the modified dataframe or processing it
-    st.write("Updated Options:")
-    st.write(edited_df)
+with st.form('market_editor_form'):
+    # Reset index for comparison
+    original_market_df = df_markets.copy().reset_index(drop=True)
+
+    edited_market_df = st.data_editor(
+        df_markets.reset_index(drop=True),
+        num_rows="dynamic",
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            'MARKET': st.column_config.TextColumn('Market'),
+            # Add configurations for other columns if any
+        }
+    )
+
+    submitted_market = st.form_submit_button('Save Changes')
+
+if submitted_market:
+    # Normalize data types before comparison
+    edited_market_df = edited_market_df.astype(str).reset_index(drop=True)
+    original_market_df = original_market_df.astype(str).reset_index(drop=True)
+
+    # Ensure columns are in the same order
+    edited_market_df = edited_market_df[original_market_df.columns.tolist()]
+
+    # Remove duplicates
+    edited_market_df = edited_market_df.drop_duplicates()
+    original_market_df = original_market_df.drop_duplicates()
+
+    # Find added markets
+    added_markets = set(edited_market_df['MARKET']) - set(original_market_df['MARKET'])
+    # Find removed markets
+    removed_markets = set(original_market_df['MARKET']) - set(edited_market_df['MARKET'])
+
+    if not added_markets and not removed_markets:
+        st.info("No changes detected.")
+    else:
+        # Prepare SQL statements
+        queries = []
+
+        # Process added markets (INSERT)
+        for market_name in added_markets:
+            market_name_escaped = market_name.replace("'", "''")
+            query = f"INSERT INTO raw.snowflake.lm_markets (MARKET) VALUES ('{market_name_escaped}');"
+            queries.append(query)
+
+        # Process removed markets (DELETE)
+        for market_name in removed_markets:
+            market_name_escaped = market_name.replace("'", "''")
+            query = f"DELETE FROM raw.snowflake.lm_markets WHERE MARKET = '{market_name_escaped}';"
+            queries.append(query)
+
+        # Execute SQL statements
+        with st.spinner('Saving changes...'):
+            for query in queries:
+                try:
+                    session.sql(query).collect()
+                except Exception as e:
+                    st.error(f"Error executing query: {str(e)}")
+
+        st.success("Market changes saved successfully!")
+
+        # Reload data
+        df_markets = get_market()
+
+        # Update the market options for the first form
+        market_options = get_market_options()
