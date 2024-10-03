@@ -136,44 +136,45 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-st.sidebar.title("Filters")
+# Read query parameters
+query_params = st.experimental_get_query_params()
 
-# Add the Market multiselect filter below the "Filters" title
-if 'selected_group' not in st.session_state:
-    st.session_state['selected_group'] = ['All Groups']  # Default value
+# Get default filter values from query params
+default_selected_group = query_params.get('selected_group', ['All Groups'])
+default_selected_timeframe = query_params.get('selected_timeframe', ['This Week'])[0]
+
+# Sidebar filters with default values from query params
+st.sidebar.title("Filters")
 
 selected_group = st.sidebar.multiselect(
     'Group', 
     ['All Groups'] + sorted(df['MARKET_GROUP'].unique()),
-    default=st.session_state['selected_group'],
+    default=default_selected_group,
     key='group_multiselect'
 )
 
-# Save the selected market filters to session state
-st.session_state['selected_group'] = selected_group
+selected_timeframe = st.sidebar.selectbox(
+    'Timeframe',
+    ['This Week', 'Next Week', 'Last Week'],
+    index=['This Week', 'Next Week', 'Last Week'].index(default_selected_timeframe)
+)
 
-# Apply the market filter to the DataFrame
+# Function to update query parameters
+def update_query_params():
+    st.experimental_set_query_params(
+        selected_group=selected_group,
+        selected_timeframe=selected_timeframe
+    )
+
+# Update query parameters when filters change
+update_query_params()
+
+# Apply filters to the DataFrame
 if 'All Groups' not in selected_group:
     df = df[df['MARKET_GROUP'].isin(selected_group)]
 
-# Set the initial state for 'selected_timeframe' to 'This Week' if not already set
-if 'selected_timeframe' not in st.session_state:
-    st.session_state['selected_timeframe'] = 'This Week'
-
-# Sidebar filter for Timeframe
-selected_timeframe = st.sidebar.selectbox(
-    'Timeframe',
-    ['This Week', 'Next Week', 'Last Week'],  # Ensure consistent ordering here
-    index=['This Week', 'Next Week', 'Last Week'].index(st.session_state['selected_timeframe'])  # Default to session state
-)
-
-# Update session state only if the selected timeframe has changed
-if selected_timeframe != st.session_state['selected_timeframe']:
-    st.session_state['selected_timeframe'] = selected_timeframe
-
-# Apply the timeframe filter to the DataFrame
 if 'TIMEFRAME' in df.columns:
-    df = df[df['TIMEFRAME'] == st.session_state['selected_timeframe']]  # Use session state value for filtering
+    df = df[df['TIMEFRAME'] == selected_timeframe]
 else:
     st.error("TIMEFRAME column not found in the dataframe.")
 
