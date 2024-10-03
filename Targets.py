@@ -51,7 +51,7 @@ def get_users():
 # Cache functions to avoid redundant queries
 def get_market():
     users_query = """
-        SELECT *
+        SELECT MARKET, MARKET_GROUP, RANK, NOTES
         FROM raw.snowflake.lm_markets 
     """
     return session.sql(users_query).to_pandas()
@@ -120,6 +120,10 @@ merged_df['ACTIVE'] = merged_df['ACTIVE'].fillna(False)
 # Ensure 'TYPE' column has valid options
 valid_types = ['🏠🏃 Hybrid', '🏃 Field Marketing', '🏠 Web To Home']
 merged_df['TYPE'] = merged_df['TYPE'].apply(lambda x: x if x in valid_types else '🏠🏃 Hybrid')
+
+# Ensure 'MARKET' column has valid options
+valid_market_types = df_markets['MARKET'].unique()
+merged_df['MARKET'] = merged_df['MARKET'].apply(lambda x: x if x in valid_market_types else 'No Market')
 
 # Prepare the dataframe for editing
 edit_df = merged_df[['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'FM_GOAL', 'FM_RANK', 'SALESFORCE_ID']].copy()
@@ -198,8 +202,11 @@ with st.form('editor_form'):
             'FULL_NAME': st.column_config.TextColumn(
                 'Name'
             ),
-            'MARKET': st.column_config.TextColumn(
-                'Market'
+            'MARKET': st.column_config.SelectboxColumn(
+                'Market',
+                options=valid_market_types,
+                help="Select the market",
+                required=True
             ),
             'GOAL': st.column_config.NumberColumn(
                 'W2H Goal'
@@ -216,7 +223,7 @@ with st.form('editor_form'):
             'TYPE': st.column_config.SelectboxColumn(
                 'Type',
                 options=valid_types,
-                help="Select the type of marketing",
+                help="Select the type of channel",
                 required=True
             ),
         }
@@ -300,65 +307,137 @@ with st.form('market_editor_form'):
     original_market_df = df_markets.copy().reset_index(drop=True)
 
     edited_market_df = st.data_editor(
-        df_markets.reset_index(drop=True),
+        df_markets[['MARKET', 'MARKET_GROUP', 'RANK', 'NOTES']].reset_index(drop=True),
         num_rows="dynamic",
         hide_index=True,
         use_container_width=True,
         column_config={
             'MARKET': st.column_config.TextColumn('Market'),
-            # Add configurations for other columns if any
+            'MARKET_GROUP': st.column_config.TextColumn('Market Group'),
+            'RANK': st.column_config.NumberColumn('Rank'),
+            'NOTES': st.column_config.TextColumn('Notes'),
         }
     )
 
     submitted_market = st.form_submit_button('Save Changes')
 
 if submitted_market:
-    # Normalize data types before comparison
-    edited_market_df = edited_market_df.astype(str).reset_index(drop=True)
-    original_market_df = original_market_df.astype(str).reset_index(drop=True)
+    # Reset index for comparison
+    edited_market_df = edited_market_df.reset_index(drop=True)
+    original_market_df = original_market_df.reset_index(drop=True)
 
-    # Ensure columns are in the same order
-    edited_market_df = edited_market_df[original_market_df.columns.tolist()]
+    # Get the sets of markets
+    original_markets = set(original_market_df['MARKET'])
+    edited_markets = set(edited_market_df['MARKET'])
 
-    # Remove duplicates
-    edited_market_df = edited_market_df.drop_duplicates()
-    original_market_df = original_market_df.drop_duplicates()
+    new_markets = edited_markets - original_markets
+    deleted_markets = original_markets - edited_markets
+    common_markets = original_markets & edited_markets
 
-    # Find added markets
-    added_markets = set(edited_market_df['MARKET']) - set(original_market_df['MARKET'])
-    # Find removed markets
-    removed_markets = set(original_market_df['MARKET']) - set(edited_market_df['MARKET'])
+    # Initialize lists to store queries
+    queries = []
 
-    if not added_markets and not removed_markets:
-        st.info("No changes detected.")
-    else:
-        # Prepare SQL statements
-        queries = []
+    # Handle deleted markets
+    for market in deleted_markets:
+        market_safe = market.replace("'", "''")
+        query = f"DELETE FROM raw.snowflake.lm_markets WHERE MARKET = '{market_safe}';"
+        queries.append((query, f"Deleted market '{market}'"))
 
-        # Process added markets (INSERT)
-        for market_name in added_markets:
-            market_name_escaped = market_name.replace("'", "''")
-            query = f"INSERT INTO raw.snowflake.lm_markets (MARKET) VALUES ('{market_name_escaped}');"
-            queries.append(query)
+    # Handle new markets
+    new_markets_df = edited_market_df[edited_market_df['MARKET'].isin(new_markets)]
+    for idx, row in new_markets_df.iterrows():
+        # Process as insert
+        market = row['MARKET']
+        if pd.isna(market) or market == '':
+            st.error("Market name cannot be empty.")
+            continue  # Skip this row
+        market = market.replace("'", "''")
 
-        # Process removed markets (DELETE)
-        for market_name in removed_markets:
-            market_name_escaped = market_name.replace("'", "''")
-            query = f"DELETE FROM raw.snowflake.lm_markets WHERE MARKET = '{market_name_escaped}';"
-            queries.append(query)
+        # Handle 'MARKET_GROUP' field
+        market_group = row.get('MARKET_GROUP', '')
+        if pd.isna(market_group):
+            market_group = ''
+        market_group = market_group.replace("'", "''")
 
-        # Execute SQL statements
+        # Handle 'RANK' field
+        rank = row.get('RANK', '')
+        if pd.isna(rank) or rank == '':
+            rank_value = 'NULL'
+        else:
+            try:
+                rank_value = int(rank)
+            except (ValueError, TypeError):
+                st.error(f"Invalid rank value for market '{market}'. Rank must be an integer.")
+                continue  # Skip this row
+
+        # Handle 'NOTES' field
+        notes = row.get('NOTES', '')
+        if pd.isna(notes):
+            notes = ''
+        notes = notes.replace("'", "''")
+
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        query = f"""
+        INSERT INTO raw.snowflake.lm_markets (MARKET, MARKET_GROUP, RANK, NOTES, TIMESTAMP)
+        VALUES ('{market}', '{market_group}', {rank_value}, '{notes}', '{timestamp}');
+        """
+        queries.append((query, f"Inserted new market '{market}'"))
+
+    # Handle updated markets
+    for market in common_markets:
+        # Get rows
+        edited_row = edited_market_df[edited_market_df['MARKET'] == market].iloc[0]
+        original_row = original_market_df[original_market_df['MARKET'] == market].iloc[0]
+
+        # Compare rows (excluding 'MARKET' as it's the key)
+        columns_to_compare = ['MARKET_GROUP', 'RANK', 'NOTES']
+        if not edited_row[columns_to_compare].equals(original_row[columns_to_compare]):
+            # There are changes
+            market_safe = market.replace("'", "''")
+
+            # Handle 'MARKET_GROUP' field
+            market_group = edited_row.get('MARKET_GROUP', '')
+            if pd.isna(market_group):
+                market_group = ''
+            market_group = market_group.replace("'", "''")
+
+            # Handle 'RANK' field
+            rank = edited_row.get('RANK', '')
+            if pd.isna(rank) or rank == '':
+                rank_value = 'NULL'
+            else:
+                try:
+                    rank_value = int(rank)
+                except (ValueError, TypeError):
+                    st.error(f"Invalid rank value for market '{market}'. Rank must be an integer.")
+                    continue  # Skip this row
+
+            # Handle 'NOTES' field
+            notes = edited_row.get('NOTES', '')
+            if pd.isna(notes):
+                notes = ''
+            notes = notes.replace("'", "''")
+
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            query = f"""
+            UPDATE raw.snowflake.lm_markets
+            SET MARKET_GROUP = '{market_group}', RANK = {rank_value}, NOTES = '{notes}', TIMESTAMP = '{timestamp}'
+            WHERE MARKET = '{market_safe}';
+            """
+            queries.append((query, f"Updated market '{market}'"))
+
+    # Execute all queries in a batch
+    if queries:
         with st.spinner('Saving changes...'):
-            for query in queries:
+            for query, message in queries:
                 try:
                     session.sql(query).collect()
+                    st.success(message)
                 except Exception as e:
-                    st.error(f"Error executing query: {str(e)}")
-
-        st.success("Market changes saved successfully!")
-
+                    st.error(f"Error processing {message}: {str(e)}")
         # Reload data
         df_markets = get_market()
-
-        # Update the market options for the first form
-        market_options = get_market_options()
+    else:
+        st.info("No changes detected.")
