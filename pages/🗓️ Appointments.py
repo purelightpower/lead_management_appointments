@@ -30,6 +30,7 @@ def create_snowflake_session():
 session = create_snowflake_session()
 
 # Function to execute a SQL query and return a pandas DataFrame
+@st.cache_data(ttl=600)
 def run_query(query):
     return session.sql(query).to_pandas()
 
