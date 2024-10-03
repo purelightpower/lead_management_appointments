@@ -30,13 +30,13 @@ def create_snowflake_session():
 session = create_snowflake_session()
 
 # Function to execute a SQL query and return a pandas DataFrame
-@st.cache_data(ttl=600)  # Cache the result of this function for 10 minutes (600 seconds)
 def run_query(query):
     return session.sql(query).to_pandas()
 
 goals_query = """
-    SELECT GOAL, MARKET, TYPE, RANK, ACTIVE, CLOSER_ID, PROFILE_PICTURE, CONCAT(SPLIT_PART(NAME, ' ', 1), ' ', LEFT(SPLIT_PART(NAME, ' ', 2),1), '.') NAME
-    FROM raw.snowflake.lm_appointments
+    SELECT b.MARKET_GROUP, b.RANK MARKET_RANK, b.NOTES, a.GOAL, a.MARKET, a.TYPE, a.RANK, a.ACTIVE, a.CLOSER_ID, a.PROFILE_PICTURE, CONCAT(SPLIT_PART(a.NAME, ' ', 1), ' ', LEFT(SPLIT_PART(a.NAME, ' ', 2),1), '.') NAME
+    FROM raw.snowflake.lm_appointments a
+    LEFT JOIN raw.snowflake.lm_markets b ON a.MARKET = b.MARKET
 """
 
 appts_query = """
@@ -185,7 +185,11 @@ for idx, (market, group_df) in enumerate(df.groupby('MARKET')):
     
     with col:
         # Add a header for each market group
-        st.header(market, help='Test')
+        if 'NOTES' in group_df.columns and not group_df['NOTES'].isna().all():
+            notes = group_df['NOTES'].iloc[0]  # Get the first non-null value
+        else:
+            notes = ''
+        st.header(market, help=notes)
 
         # Break the group into chunks (rows of cards)
         for i in range(0, len(group_df), cards_per_row):
