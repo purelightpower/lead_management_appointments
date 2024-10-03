@@ -31,7 +31,7 @@ session = create_snowflake_session()
 
 # Function to execute a SQL query and return a pandas DataFrame
 @st.cache_data(ttl=600)
-def run_query(query):
+def run_query(query, data_version):
     return session.sql(query).to_pandas()
 
 goals_query = """
@@ -56,8 +56,11 @@ appts_query = """
     GROUP BY closer_id, timeframe
 """
 
-df_goals = run_query(goals_query)
-df_appts = run_query(appts_query)
+# Ensure data_version exists
+data_version = st.session_state.get('data_version', 0)
+
+df_goals = run_query(goals_query, data_version)
+df_appts = run_query(appts_query, data_version)
 
 df = pd.merge(df_goals, df_appts, left_on='CLOSER_ID', right_on='CLOSER_ID', how='left')
 

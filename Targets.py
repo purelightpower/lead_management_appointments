@@ -250,6 +250,10 @@ if submitted:
     else:
         # Update session state with new edited data
         st.session_state['filtered_edit_df'].update(edited_df)
+        # After updating the database
+        if 'data_version' not in st.session_state:
+            st.session_state['data_version'] = 0
+        st.session_state['data_version'] += 1
 
         # Accumulate queries for batch execution
         queries = []
@@ -441,3 +445,7 @@ if submitted_market:
         df_markets = get_market()
     else:
         st.info("No changes detected.")
+    # After updating the database
+    if 'data_version' not in st.session_state:
+        st.session_state['data_version'] = 0
+    st.session_state['data_version'] += 1
