@@ -135,22 +135,22 @@ st.markdown("""
 st.sidebar.title("Filters")
 
 # Add the Market multiselect filter below the "Filters" title
-if 'selected_markets' not in st.session_state:
-    st.session_state['selected_markets'] = ['All Markets']  # Default value
+if 'selected_group' not in st.session_state:
+    st.session_state['selected_group'] = ['All Groups']  # Default value
 
-selected_markets = st.sidebar.multiselect(
-    'Market', 
-    ['All Markets'] + sorted(df['MARKET'].unique()),
-    default=st.session_state['selected_markets'],
-    key='market_multiselect'
+selected_group = st.sidebar.multiselect(
+    'Group', 
+    ['All Groups'] + sorted(df['MARKET_GROUP'].unique()),
+    default=st.session_state['selected_group'],
+    key='group_multiselect'
 )
 
 # Save the selected market filters to session state
-st.session_state['selected_markets'] = selected_markets
+st.session_state['selected_group'] = selected_group
 
 # Apply the market filter to the DataFrame
-if 'All Markets' not in selected_markets:
-    df = df[df['MARKET'].isin(selected_markets)]
+if 'All Groups' not in selected_group:
+    df = df[df['MARKET_GROUP'].isin(selected_group)]
 
 # Set the initial state for 'selected_timeframe' to 'This Week' if not already set
 if 'selected_timeframe' not in st.session_state:
