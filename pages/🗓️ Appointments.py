@@ -136,15 +136,21 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+df['MARKET_GROUP'] = df['MARKET_GROUP'].fillna('No Group').astype(str)
+
+# Sort the DataFrame by MARKET_RANK and RANK
+df_sorted = df.sort_values(by=['MARKET_RANK', 'MARKET', 'RANK'])
+
+
+# Sidebar filters with default values from query params
+st.sidebar.title("Filters")
+
 # Read query parameters
 query_params = st.experimental_get_query_params()
 
 # Get default filter values from query params
 default_selected_group = query_params.get('selected_group', ['All Groups'])
 default_selected_timeframe = query_params.get('selected_timeframe', ['This Week'])[0]
-
-# Sidebar filters with default values from query params
-st.sidebar.title("Filters")
 
 selected_group = st.sidebar.multiselect(
     'Group', 
@@ -171,10 +177,10 @@ update_query_params()
 
 # Apply filters to the DataFrame
 if 'All Groups' not in selected_group:
-    df = df[df['MARKET_GROUP'].isin(selected_group)]
+    df_sorted = df_sorted[df_sorted['MARKET_GROUP'].isin(selected_group)]
 
 if 'TIMEFRAME' in df.columns:
-    df = df[df['TIMEFRAME'] == selected_timeframe]
+    df_sorted = df_sorted[df_sorted['TIMEFRAME'] == selected_timeframe]
 else:
     st.error("TIMEFRAME column not found in the dataframe.")
 
@@ -184,7 +190,7 @@ cards_per_row = 3
 market_cols = st.columns(2)
 
 # Group by MARKET and loop over each group
-for idx, (market, group_df) in enumerate(df.groupby('MARKET')):
+for idx, (market, group_df) in enumerate(df_sorted.groupby('MARKET')):
     # Alternate between the two columns for each market
     col = market_cols[idx % 2]
     
