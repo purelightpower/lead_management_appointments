@@ -133,6 +133,8 @@ if 'filtered_edit_df' not in st.session_state:
     st.session_state['filtered_edit_df'] = edit_df.copy()
 
 # Display the editable dataframe
+st.warning("ⓘ This page is for managers only. If you're not a manager or responsible for updating closer targets, please use the appointments page only.")
+
 st.write("## 🎯 Edit Closer Targets")
 
 # Modify option lists to include 'All'

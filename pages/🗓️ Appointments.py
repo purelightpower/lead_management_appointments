@@ -13,6 +13,17 @@ st.set_page_config(
 
 st.logo("https://i.ibb.co/bbH9pgH/Purelight-Logo.webp")
 
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .css-10trblm {padding-top: 0px; padding-bottom: 0px;}
+    .css-1d391kg {padding-top: 0px !important;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # Function to create a Snowflake session
 def create_snowflake_session():
     connection_parameters = {
