@@ -46,10 +46,28 @@ def run_query(query, data_version):
     return session.sql(query).to_pandas()
 
 goals_query = """
-    SELECT b.MARKET_GROUP, b.RANK MARKET_RANK, b.NOTES, a.GOAL, a.MARKET, a.TYPE, a.RANK, a.ACTIVE, a.CLOSER_ID, a.PROFILE_PICTURE, CONCAT(SPLIT_PART(a.NAME, ' ', 1), ' ', LEFT(SPLIT_PART(a.NAME, ' ', 2),1), '.') NAME
-    FROM raw.snowflake.lm_appointments a
-    LEFT JOIN raw.snowflake.lm_markets b ON a.MARKET = b.MARKET
-    WHERE ACTIVE = 'Yes' AND TYPE IN ('🏠🏃 Hybrid', '🏠 Web To Home')
+    SELECT 
+    b.MARKET_GROUP, 
+    b.RANK AS MARKET_RANK, 
+    b.NOTES, 
+    a.GOAL, 
+    a.MARKET, 
+    a.TYPE, 
+    a.RANK, 
+    a.ACTIVE, 
+    a.CLOSER_ID, 
+    a.PROFILE_PICTURE, 
+    CONCAT(SPLIT_PART(a.NAME, ' ', 1), ' ', LEFT(SPLIT_PART(a.NAME, ' ', 2), 1), '.') AS NAME,
+    TIMEFRAME
+FROM 
+    raw.snowflake.lm_appointments a
+LEFT JOIN 
+    raw.snowflake.lm_markets b 
+    ON a.MARKET = b.MARKET
+JOIN (SELECT 'This Week' AS timeframe UNION ALL SELECT 'Last Week' AS timeframe UNION ALL SELECT 'Next Week' AS timeframe)
+WHERE 
+    a.ACTIVE = 'Yes' 
+    AND a.TYPE IN ('🏠🏃 Hybrid', '🏠 Web To Home')
 """
 
 appts_query = """
@@ -74,7 +92,8 @@ data_version = st.session_state.get('data_version', 0)
 df_goals = run_query(goals_query, data_version)
 df_appts = run_query(appts_query, data_version)
 
-df = pd.merge(df_goals, df_appts, left_on='CLOSER_ID', right_on='CLOSER_ID', how='left')
+
+df = pd.merge(df_goals, df_appts, left_on=['CLOSER_ID', 'TIMEFRAME'], right_on=['CLOSER_ID', 'TIMEFRAME'], how='left')
 
 df["TIMEFRAME"] = df["TIMEFRAME"].fillna("This Week").astype(str)
 df["APPOINTMENTS"] = df["APPOINTMENTS"].fillna(0).astype(int)

@@ -1,0 +1,9 @@
+[[pages]]
+name = "Data Input"
+icon = "🏠"
+is_section = true
+
+[[pages]]
+path = "Targets.py"
+name = "Rep Targets"
+icon = "🏠"
