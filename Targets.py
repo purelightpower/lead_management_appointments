@@ -4,7 +4,6 @@ import numpy as np
 from datetime import datetime
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
-from st_pages import add_page_title, get_nav_from_toml
 
 
 st.set_page_config(
