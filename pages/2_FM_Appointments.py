@@ -46,9 +46,10 @@ def run_query(query, data_version):
     return session.sql(query).to_pandas()
 
 goals_query = """
-    SELECT b.MARKET_GROUP, b.RANK MARKET_RANK, b.NOTES, a.GOAL, a.MARKET, a.TYPE, a.RANK, a.ACTIVE, a.CLOSER_ID, a.PROFILE_PICTURE, CONCAT(SPLIT_PART(a.NAME, ' ', 1), ' ', LEFT(SPLIT_PART(a.NAME, ' ', 2),1), '.') NAME
+    SELECT b.MARKET_GROUP, b.RANK MARKET_RANK, b.NOTES, a.MARKET, a.TYPE, a.FM_RANK, a.FM_GOAL, a.ACTIVE, a.CLOSER_ID, a.PROFILE_PICTURE, CONCAT(SPLIT_PART(a.NAME, ' ', 1), ' ', LEFT(SPLIT_PART(a.NAME, ' ', 2),1), '.') NAME
     FROM raw.snowflake.lm_appointments a
     LEFT JOIN raw.snowflake.lm_markets b ON a.MARKET = b.MARKET
+    WHERE ACTIVE = 'Yes' AND TYPE IN ('🏠🏃 Hybrid', '🏃 Field Marketing')
 """
 
 appts_query = """
@@ -62,7 +63,7 @@ appts_query = """
     END timeframe,
     CURRENT_TIMESTAMP last_updated_at
     FROM raw.salesforce.opportunity
-    WHERE sales_channel_c = 'Web To Home' 
+    WHERE sales_channel_c = 'Outside Sales' 
     AND timeframe IS NOT NULL
     GROUP BY closer_id, timeframe
 """
@@ -81,8 +82,8 @@ df['PROFILE_PICTURE'] = df['PROFILE_PICTURE'].fillna('https://i.ibb.co/ZNK5xmN/p
 
 # Calculate PERCENTAGE_TO_GOAL, handling division by zero
 df['PERCENTAGE_TO_GOAL'] = np.where(
-    df['GOAL'] == 0, 100,  # If GOAL is 0, set percentage to 100
-    np.minimum((df['APPOINTMENTS'] / df['GOAL']) * 100, 100)  # Otherwise, calculate the percentage and cap it at 100
+    df['FM_GOAL'] == 0, 100,  # If GOAL is 0, set percentage to 100
+    np.minimum((df['APPOINTMENTS'] / df['FM_GOAL']) * 100, 100)  # Otherwise, calculate the percentage and cap it at 100
 )
 
 st.markdown("""
@@ -150,7 +151,7 @@ st.markdown("""
 df['MARKET_GROUP'] = df['MARKET_GROUP'].fillna('No Group').astype(str)
 
 # Sort the DataFrame by MARKET_RANK and RANK
-df_sorted = df.sort_values(by=['MARKET_RANK', 'MARKET', 'RANK'])
+df_sorted = df.sort_values(by=['MARKET_RANK', 'MARKET', 'FM_RANK'])
 
 
 # Sidebar filters with default values from query params
@@ -223,7 +224,7 @@ for idx, (market, group_df) in enumerate(df_sorted.groupby('MARKET')):
             # Loop through each card in the row and assign it to a column
             for col, (_, row) in zip(cols, row_df.iterrows()):
                 percentage_to_goal = row['PERCENTAGE_TO_GOAL']
-                goal_value = row['GOAL']
+                goal_value = row['FM_GOAL']
                 appointments_value = row['APPOINTMENTS']
                  # Choose progress bar color based on the percentage
                 
