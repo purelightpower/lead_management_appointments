@@ -42,7 +42,7 @@ def create_snowflake_session():
 session = create_snowflake_session()
 
 # Cache functions to avoid redundant queries
-@st.cache_data(show_spinner=False, persist=True)
+@st.cache_data(show_spinner=False, persist=True, ttl=600)
 def get_users(data_version):
     users_query = """
         SELECT DISTINCT FULL_NAME, SALESFORCE_ID
@@ -51,7 +51,7 @@ def get_users(data_version):
     """
     return session.sql(users_query).to_pandas()
 
-@st.cache_data(show_spinner=False, persist=True)
+@st.cache_data(show_spinner=False, persist=True, ttl=600)
 def get_market(data_version):
     users_query = """
         SELECT MARKET, MARKET_GROUP, RANK, NOTES
@@ -59,7 +59,7 @@ def get_market(data_version):
     """
     return session.sql(users_query).to_pandas()
 
-@st.cache_data(show_spinner=False, persist=True)
+@st.cache_data(show_spinner=False, persist=True, ttl=600)
 def get_profile_pictures(data_version):
     profile_picture_query = """
         SELECT FULL_NAME, PROFILE_PICTURE
@@ -67,14 +67,14 @@ def get_profile_pictures(data_version):
     """
     return session.sql(profile_picture_query).to_pandas()
 
-@st.cache_data(show_spinner=False, persist=True)
+@st.cache_data(show_spinner=False, persist=True, ttl=600)
 def get_appointments(data_version):
     appointments_query = """
         SELECT * FROM raw.snowflake.lm_appointments
     """
     return session.sql(appointments_query).to_pandas()
 
-@st.cache_data(show_spinner=False, persist=True)
+@st.cache_data(show_spinner=False, persist=True, ttl=600)
 def get_current_targets(data_version):
     current_targets_query = """
         SELECT * FROM analytics.ad_hoc.lm_appts_test
