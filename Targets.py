@@ -41,7 +41,9 @@ def create_snowflake_session():
 # Initialize Snowpark session
 session = create_snowflake_session()
 
-def get_users():
+# Cache functions to avoid redundant queries
+@st.cache_data(show_spinner=False, persist=True)
+def get_users(data_version):
     users_query = """
         SELECT DISTINCT FULL_NAME, SALESFORCE_ID
         FROM operational.airtable.vw_users 
@@ -49,40 +51,47 @@ def get_users():
     """
     return session.sql(users_query).to_pandas()
 
-# Cache functions to avoid redundant queries
-def get_market():
+@st.cache_data(show_spinner=False, persist=True)
+def get_market(data_version):
     users_query = """
         SELECT MARKET, MARKET_GROUP, RANK, NOTES
         FROM raw.snowflake.lm_markets 
     """
     return session.sql(users_query).to_pandas()
 
-def get_profile_pictures():
+@st.cache_data(show_spinner=False, persist=True)
+def get_profile_pictures(data_version):
     profile_picture_query = """
         SELECT FULL_NAME, PROFILE_PICTURE
         FROM operational.airtable.vw_users
     """
     return session.sql(profile_picture_query).to_pandas()
 
-def get_appointments():
+@st.cache_data(show_spinner=False, persist=True)
+def get_appointments(data_version):
     appointments_query = """
         SELECT * FROM raw.snowflake.lm_appointments
     """
     return session.sql(appointments_query).to_pandas()
 
-def get_current_targets():
+@st.cache_data(show_spinner=False, persist=True)
+def get_current_targets(data_version):
     current_targets_query = """
         SELECT * FROM analytics.ad_hoc.lm_appts_test
     """
     return session.sql(current_targets_query).to_pandas()
 
-# Load data
-df_users = get_users()
-df_markets = get_market()
-profile_picture = get_profile_pictures()
-appointments = get_appointments()
-current_targets = get_current_targets()
-unique_markets_df = get_appointments()[['MARKET']].drop_duplicates()
+# Check if data_version exists in session state
+if 'data_version' not in st.session_state:
+    st.session_state['data_version'] = 0
+
+# Load data with caching and pass data_version as a dependency
+df_users = get_users(st.session_state['data_version'])
+df_markets = get_market(st.session_state['data_version'])
+profile_picture = get_profile_pictures(st.session_state['data_version'])
+appointments = get_appointments(st.session_state['data_version'])
+current_targets = get_current_targets(st.session_state['data_version'])
+unique_markets_df = appointments[['MARKET']].drop_duplicates()
 
 
 # Merge the dataframes on the full name
