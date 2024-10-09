@@ -5,7 +5,11 @@ from datetime import datetime
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 
-sidebar()
+st.set_page_config(
+    page_title="Appointment Dashboard",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
 st.logo("https://i.ibb.co/bbH9pgH/Purelight-Logo.webp")
 
