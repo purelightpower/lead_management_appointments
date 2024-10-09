@@ -4,6 +4,7 @@ import numpy as np
 from datetime import datetime
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
+from sidebar import sidebar
 
 
 st.set_page_config(
@@ -11,6 +12,8 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
     layout="wide"
 )
+
+sidebar()
 
 st.logo("https://i.ibb.co/bbH9pgH/Purelight-Logo.webp")
 
