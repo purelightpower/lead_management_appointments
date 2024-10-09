@@ -47,7 +47,7 @@ def get_users(data_version):
     users_query = """
         SELECT DISTINCT FULL_NAME, SALESFORCE_ID
         FROM operational.airtable.vw_users 
-        WHERE role_type = 'Closer' AND term_date IS NULL
+        WHERE role_type IN ('Closer', 'Manager') AND term_date IS NULL
     """
     return session.sql(users_query).to_pandas()
 
