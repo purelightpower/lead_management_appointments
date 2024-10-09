@@ -443,7 +443,7 @@ if submitted_market:
                 except Exception as e:
                     st.error(f"Error processing {message}: {str(e)}")
         # Reload data
-        df_markets = get_market()
+        df_markets = get_market(st.session_state['data_version'])
     else:
         st.info("No changes detected.")
     # After updating the database
