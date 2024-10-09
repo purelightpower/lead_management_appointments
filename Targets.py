@@ -44,7 +44,8 @@ session = create_snowflake_session()
 # Cache functions to avoid redundant queries
 @st.cache_data(show_spinner=False, persist=True)
 def get_users(data_version):
-    users_query = """
+    users_query = f"""
+        -- data_version: {data_version}
         SELECT DISTINCT FULL_NAME, SALESFORCE_ID
         FROM operational.airtable.vw_users 
         WHERE role_type IN ('Closer', 'Manager') AND term_date IS NULL
@@ -53,7 +54,8 @@ def get_users(data_version):
 
 @st.cache_data(show_spinner=False, persist=True)
 def get_market(data_version):
-    users_query = """
+    users_query = f"""
+        -- data_version: {data_version}
         SELECT MARKET, MARKET_GROUP, RANK, NOTES
         FROM raw.snowflake.lm_markets 
     """
@@ -303,6 +305,12 @@ if submitted:
                 except Exception as e:
                     st.error(f"Error saving changes for {row['FULL_NAME']}: {str(e)}")
 
+        get_users.clear()
+        get_appointments.clear()
+
+        # Reset the session state variable
+        st.session_state['filtered_edit_df'] = edit_df.copy()
+
 # --- Market Form ---
 st.divider()
 st.write("## 🏙️ Edit Markets")
@@ -443,10 +451,6 @@ if submitted_market:
                 except Exception as e:
                     st.error(f"Error processing {message}: {str(e)}")
         # Reload data
-        df_markets = get_market(st.session_state['data_version'])
+        get_market.clear()
     else:
         st.info("No changes detected.")
-    # After updating the database
-    if 'data_version' not in st.session_state:
-        st.session_state['data_version'] = 0
-    st.session_state['data_version'] += 1
