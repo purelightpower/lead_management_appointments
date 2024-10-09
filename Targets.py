@@ -7,12 +7,6 @@ from snowflake.snowpark.functions import col
 from sidebar import sidebar
 
 
-st.set_page_config(
-    page_title="Appointment Dashboard",
-    initial_sidebar_state="collapsed",
-    layout="wide"
-)
-
 sidebar()
 
 st.logo("https://i.ibb.co/bbH9pgH/Purelight-Logo.webp")
