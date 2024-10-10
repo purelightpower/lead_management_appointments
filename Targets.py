@@ -41,9 +41,14 @@ def create_snowflake_session():
 # Initialize Snowpark session
 session = create_snowflake_session()
 
+# Check if data_version exists in session state
+if 'data_version' not in st.session_state:
+    st.session_state['data_version'] = 0
+
 # Cache functions to avoid redundant queries
 @st.cache_data(show_spinner=False, persist=True)
-def get_users(data_version):
+def get_users():
+    data_version = st.session_state.get('data_version', 0)
     users_query = f"""
         -- data_version: {data_version}
         SELECT DISTINCT FULL_NAME, SALESFORCE_ID
@@ -53,38 +58,40 @@ def get_users(data_version):
     return session.sql(users_query).to_pandas()
 
 @st.cache_data(show_spinner=False, persist=True)
-def get_market(data_version):
-    users_query = f"""
+def get_market():
+    data_version = st.session_state.get('data_version', 0)
+    market_query = f"""
         -- data_version: {data_version}
         SELECT MARKET, MARKET_GROUP, RANK, NOTES
         FROM raw.snowflake.lm_markets 
     """
-    return session.sql(users_query).to_pandas()
+    return session.sql(market_query).to_pandas()
 
 @st.cache_data(show_spinner=False, persist=True)
-def get_profile_pictures(data_version):
-    profile_picture_query = """
+def get_profile_pictures():
+    data_version = st.session_state.get('data_version', 0)
+    profile_picture_query = f"""
+        -- data_version: {data_version}
         SELECT FULL_NAME, PROFILE_PICTURE
         FROM operational.airtable.vw_users
     """
     return session.sql(profile_picture_query).to_pandas()
 
+
 @st.cache_data(show_spinner=False, persist=True)
-def get_appointments(data_version):
-    appointments_query = """
+def get_appointments():
+    data_version = st.session_state.get('data_version', 0)
+    appointments_query = f"""
+        -- data_version: {data_version}
         SELECT * FROM raw.snowflake.lm_appointments
     """
     return session.sql(appointments_query).to_pandas()
 
-# Check if data_version exists in session state
-if 'data_version' not in st.session_state:
-    st.session_state['data_version'] = 0
-
-# Load data with caching and pass data_version as a dependency
-df_users = get_users(st.session_state['data_version'])
-df_markets = get_market(st.session_state['data_version'])
-profile_picture = get_profile_pictures(st.session_state['data_version'])
-appointments = get_appointments(st.session_state['data_version'])
+# Load data with caching
+df_users = get_users()
+df_markets = get_market()
+profile_picture = get_profile_pictures()
+appointments = get_appointments()
 unique_markets_df = appointments[['MARKET']].drop_duplicates()
 
 
@@ -308,6 +315,9 @@ if submitted:
         get_users.clear()
         get_appointments.clear()
 
+            # Increment data_version
+        st.session_state['data_version'] += 1
+
         # Reset the session state variable
         st.session_state['filtered_edit_df'] = edit_df.copy()
 
@@ -452,5 +462,7 @@ if submitted_market:
                     st.error(f"Error processing {message}: {str(e)}")
         # Reload data
         get_market.clear()
+            # Increment data_version
+        st.session_state['data_version'] += 1
     else:
         st.info("No changes detected.")
