@@ -3,3 +3,8 @@ pandas
 numpy
 streamlit
 snowflake-snowpark-python==1.11.1
+geopy
+requests
+folium
+streamlit-folium
+openrouteservice
