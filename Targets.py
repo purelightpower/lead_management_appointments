@@ -301,6 +301,9 @@ if submitted:
         # Reset the session state variable
         st.session_state['filtered_edit_df'] = edit_df.copy()
 
+        # After saving changes and clearing the cache on the first page
+        st.session_state['data_updated'] = True
+
 # --- Market Form ---
 st.divider()
 st.write("## 🏙️ Edit Markets")
