@@ -48,7 +48,8 @@ def main():
                 distance_km = distance_meters / 1000
                 distance_miles = distance_km * 0.621371
 
-                st.write(f"Driving distance between the addresses: {distance_miles:.2f} miles ({distance_km:.2f} km)")
+                with st.container(border=True):
+                    st.write(f"Driving distance between the addresses: {distance_miles:.2f} miles ({distance_km:.2f} km)")
 
                 # Create map with folium
                 map_center = [(start_coords[0] + end_coords[0]) / 2, (start_coords[1] + end_coords[1]) / 2]
