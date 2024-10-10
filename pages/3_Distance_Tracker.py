@@ -45,6 +45,7 @@ def main():
 
                 # Extract distance in meters and convert to miles and kilometers
                 distance_meters = route['features'][0]['properties']['segments'][0]['distance']
+                distance_km = distance_meters / 1000
                 distance_miles = distance_km * 0.621371
 
                 with st.container(border=True):
