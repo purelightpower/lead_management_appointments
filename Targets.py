@@ -305,11 +305,10 @@ if submitted:
         get_appointments.clear()
         get_profile_pictures.clear()
 
-        # Reset the session state variable
-        st.session_state['filtered_edit_df'] = edit_df.copy()
-
         # After saving changes and clearing the cache on the first page
         st.session_state['data_updated'] = True
+
+        st.cache_data.clear()
 
 # --- Market Form ---
 st.divider()
