@@ -29,13 +29,6 @@ def main():
     with col3:
         calculate_button = st.button("Calculate", key="calculate")
 
-    # Create an empty map placeholder that will update when the button is pressed
-    map_center = [0, 0]
-    distance_map = folium.Map(location=map_center, zoom_start=2)
-    map_placeholder = st.empty()
-    with map_placeholder:
-        st_folium(distance_map, width=700, height=500)
-
     # Calculate distance when button is pressed
     if calculate_button and starting_address and ending_address:
         try:
@@ -75,8 +68,7 @@ def main():
 
                 # Display updated map
                 st.subheader("Map Showing the Driving Route")
-                with map_placeholder:
-                    st_folium(distance_map, width=700, height=500)
+                st_folium(distance_map, width=700, height=500)
             else:
                 st.write("Could not find one or both of the addresses. Please try again.")
         except requests.exceptions.RequestException as e:
