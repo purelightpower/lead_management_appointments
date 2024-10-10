@@ -46,7 +46,7 @@ if 'data_version' not in st.session_state:
     st.session_state['data_version'] = 0
 
 # Cache functions to avoid redundant queries
-@st.cache_data(show_spinner=False, persist=True)
+@st.cache_data(show_spinner=False)
 def get_users():
     data_version = st.session_state.get('data_version', 0)
     users_query = f"""
@@ -57,7 +57,7 @@ def get_users():
     """
     return session.sql(users_query).to_pandas()
 
-@st.cache_data(show_spinner=False, persist=True)
+@st.cache_data(show_spinner=False)
 def get_market():
     data_version = st.session_state.get('data_version', 0)
     market_query = f"""
@@ -67,7 +67,7 @@ def get_market():
     """
     return session.sql(market_query).to_pandas()
 
-@st.cache_data(show_spinner=False, persist=True)
+@st.cache_data(show_spinner=False)
 def get_profile_pictures():
     data_version = st.session_state.get('data_version', 0)
     profile_picture_query = f"""
@@ -78,7 +78,7 @@ def get_profile_pictures():
     return session.sql(profile_picture_query).to_pandas()
 
 
-@st.cache_data(show_spinner=False, persist=True)
+@st.cache_data(show_spinner=False)
 def get_appointments():
     data_version = st.session_state.get('data_version', 0)
     appointments_query = f"""
