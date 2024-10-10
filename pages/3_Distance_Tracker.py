@@ -24,9 +24,8 @@ def main():
     starting_address = st.text_input("Starting Address")
     ending_address = st.text_input("Ending Address")
 
-    # Calculate distance when button is pressed
-    calculate_button = st.button("Calculate")
-    if calculate_button and starting_address and ending_address:
+    # Calculate distance if both addresses are provided
+    if starting_address and ending_address:
         try:
             start_coords = get_coordinates(starting_address)
             end_coords = get_coordinates(ending_address)
@@ -76,3 +75,13 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# requirements.txt
+'''
+streamlit
+geopy
+requests
+folium
+streamlit-folium
+openrouteservice
+'''
