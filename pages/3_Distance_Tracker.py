@@ -32,7 +32,7 @@ def main():
 
             if start_coords and end_coords:
                 # Use OpenRouteService to get driving distance
-                client = openrouteservice.Client(key=["open_route"]["token"])
+                client = openrouteservice.Client(key=st.secrets["open_route"]["token"])
                 try:
                     route = client.directions(
                         coordinates=[(start_coords[1], start_coords[0]), (end_coords[1], end_coords[0])],
