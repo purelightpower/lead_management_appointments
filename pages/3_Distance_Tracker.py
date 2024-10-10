@@ -45,11 +45,10 @@ def main():
 
                 # Extract distance in meters and convert to miles and kilometers
                 distance_meters = route['features'][0]['properties']['segments'][0]['distance']
-                distance_km = distance_meters / 1000
                 distance_miles = distance_km * 0.621371
 
                 with st.container(border=True):
-                    st.write(f"Driving distance between the addresses: {distance_miles:.2f} miles ({distance_km:.2f} km)")
+                    st.write(f"Driving distance between the addresses: {distance_miles:.2f} miles.")
 
                 # Create map with folium
                 map_center = [(start_coords[0] + end_coords[0]) / 2, (start_coords[1] + end_coords[1]) / 2]
