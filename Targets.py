@@ -94,8 +94,6 @@ profile_picture = get_profile_pictures()
 appointments = get_appointments()
 unique_markets_df = appointments[['MARKET']].drop_duplicates()
 
-st.dataframe(df_markets)
-
 
 # Merge the dataframes on the full name
 merged_df = df_users.merge(
