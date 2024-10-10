@@ -40,6 +40,13 @@ def create_snowflake_session():
 # Initialize Snowpark session
 session = create_snowflake_session()
 
+# Check if data has been updated
+if st.session_state.get('data_updated', False):
+    # Clear the cache of this page
+    st.cache_data.clear()
+    # Reset the data_updated flag
+    st.session_state['data_updated'] = False
+
 # Cache functions to avoid redundant queries
 @st.cache_data(show_spinner=False)
 def get_users():
