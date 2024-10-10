@@ -5,7 +5,6 @@ from datetime import datetime
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 
-
 st.set_page_config(
     page_title="Appointment Dashboard",
     initial_sidebar_state="collapsed",
@@ -41,16 +40,10 @@ def create_snowflake_session():
 # Initialize Snowpark session
 session = create_snowflake_session()
 
-# Check if data_version exists in session state
-if 'data_version' not in st.session_state:
-    st.session_state['data_version'] = 0
-
 # Cache functions to avoid redundant queries
 @st.cache_data(show_spinner=False)
 def get_users():
-    data_version = st.session_state.get('data_version', 0)
-    users_query = f"""
-        -- data_version: {data_version}
+    users_query = """
         SELECT DISTINCT FULL_NAME, SALESFORCE_ID
         FROM operational.airtable.vw_users 
         WHERE role_type IN ('Closer', 'Manager') AND term_date IS NULL
@@ -59,9 +52,7 @@ def get_users():
 
 @st.cache_data(show_spinner=False)
 def get_market():
-    data_version = st.session_state.get('data_version', 0)
-    market_query = f"""
-        -- data_version: {data_version}
+    market_query = """
         SELECT MARKET, MARKET_GROUP, RANK, NOTES
         FROM raw.snowflake.lm_markets 
     """
@@ -69,20 +60,15 @@ def get_market():
 
 @st.cache_data(show_spinner=False)
 def get_profile_pictures():
-    data_version = st.session_state.get('data_version', 0)
-    profile_picture_query = f"""
-        -- data_version: {data_version}
+    profile_picture_query = """
         SELECT FULL_NAME, PROFILE_PICTURE
         FROM operational.airtable.vw_users
     """
     return session.sql(profile_picture_query).to_pandas()
 
-
 @st.cache_data(show_spinner=False)
 def get_appointments():
-    data_version = st.session_state.get('data_version', 0)
-    appointments_query = f"""
-        -- data_version: {data_version}
+    appointments_query = """
         SELECT * FROM raw.snowflake.lm_appointments
     """
     return session.sql(appointments_query).to_pandas()
@@ -94,7 +80,6 @@ profile_picture = get_profile_pictures()
 appointments = get_appointments()
 unique_markets_df = appointments[['MARKET']].drop_duplicates()
 
-
 # Merge the dataframes on the full name
 merged_df = df_users.merge(
     appointments, left_on='FULL_NAME', right_on='NAME', how='left'
@@ -104,7 +89,6 @@ merged_df = df_users.merge(
 
 # Rename and drop columns as needed
 merged_df = merged_df.rename(columns={
-    'FULL_NAME': 'FULL_NAME',
     'PROFILE_PICTURE_y': 'PROFILE_PICTURE'
 })
 
@@ -260,11 +244,7 @@ if submitted:
     else:
         # Update session state with new edited data
         st.session_state['filtered_edit_df'].update(edited_df)
-        # After updating the database
-        if 'data_version' not in st.session_state:
-            st.session_state['data_version'] = 0
-        st.session_state['data_version'] += 1
-
+        
         # Accumulate queries for batch execution
         queries = []
         for idx in changes.index.unique():
@@ -278,6 +258,7 @@ if submitted:
             new_type = row['TYPE']
             new_market = row['MARKET']
             profile_picture = row['PROFILE_PICTURE']
+            salesforce_id = row['SALESFORCE_ID'].replace("'", "''")
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             active_str = 'Yes' if new_active == 'True' else 'No'
@@ -299,7 +280,7 @@ if submitted:
                     PROFILE_PICTURE = '{profile_picture}'
             WHEN NOT MATCHED THEN
                 INSERT (CLOSER_ID, NAME, GOAL, RANK, FM_GOAL, FM_RANK, ACTIVE, TYPE, MARKET, TIMESTAMP, PROFILE_PICTURE)
-                VALUES ('{row['SALESFORCE_ID']}', '{full_name}', {new_goal}, {new_rank}, {fm_goal}, {fm_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}', '{profile_picture}');
+                VALUES ('{salesforce_id}', '{full_name}', {new_goal}, {new_rank}, {fm_goal}, {fm_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}', '{profile_picture}');
             """
             queries.append(query)
 
@@ -312,11 +293,10 @@ if submitted:
                 except Exception as e:
                     st.error(f"Error saving changes for {row['FULL_NAME']}: {str(e)}")
 
+        # Clear cached data functions
         get_users.clear()
         get_appointments.clear()
-
-            # Increment data_version
-        st.session_state['data_version'] += 1
+        get_profile_pictures.clear()
 
         # Reset the session state variable
         st.session_state['filtered_edit_df'] = edit_df.copy()
@@ -460,9 +440,11 @@ if submitted_market:
                     st.success(message)
                 except Exception as e:
                     st.error(f"Error processing {message}: {str(e)}")
-        # Reload data
+        # Clear cached data functions
         get_market.clear()
-            # Increment data_version
-        st.session_state['data_version'] += 1
+        get_appointments.clear()
+
+        # Reload the market data
+        df_markets = get_market()
     else:
         st.info("No changes detected.")
