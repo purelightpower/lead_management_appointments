@@ -20,12 +20,22 @@ def get_coordinates(address):
 def main():
     st.title("Address Distance Calculator")
 
-    # Input fields for starting and ending addresses
-    starting_address = st.text_input("Starting Address")
-    ending_address = st.text_input("Ending Address")
+    # Input fields for starting and ending addresses on the same line
+    col1, col2, col3 = st.columns([3, 3, 1])
+    with col1:
+        starting_address = st.text_input("Starting", key="start")
+    with col2:
+        ending_address = st.text_input("Ending", key="end")
+    with col3:
+        calculate_button = st.button("Calculate", key="calculate")
 
-    # Calculate distance if both addresses are provided
-    if starting_address and ending_address:
+    # Create an empty map placeholder
+    map_center = [0, 0]
+    distance_map = folium.Map(location=map_center, zoom_start=2)
+    st_folium(distance_map, width=700, height=500)
+
+    # Calculate distance when button is pressed
+    if calculate_button and starting_address and ending_address:
         try:
             start_coords = get_coordinates(starting_address)
             end_coords = get_coordinates(ending_address)
@@ -50,7 +60,7 @@ def main():
 
                 st.write(f"Driving distance between the addresses: {distance_miles:.2f} miles ({distance_km:.2f} km)")
 
-                # Create map with folium
+                # Update map with folium
                 map_center = [(start_coords[0] + end_coords[0]) / 2, (start_coords[1] + end_coords[1]) / 2]
                 distance_map = folium.Map(location=map_center, zoom_start=10)
 
@@ -61,7 +71,7 @@ def main():
                 # Add the route line to the map
                 folium.PolyLine([tuple(reversed(coord)) for coord in route['features'][0]['geometry']['coordinates']], color='blue').add_to(distance_map)
 
-                # Display map
+                # Display updated map
                 st.subheader("Map Showing the Driving Route")
                 st_folium(distance_map, width=700, height=500)
             else:
@@ -74,13 +84,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# requirements.txt
-'''
-streamlit
-geopy
-requests
-folium
-streamlit-folium
-openrouteservice
-'''
