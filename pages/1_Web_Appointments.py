@@ -184,11 +184,16 @@ df_sorted = df.sort_values(by=['MARKET_RANK', 'MARKET', 'RANK'])
 st.sidebar.title("Filters")
 
 # Read query parameters
-query_params = st.experimental_get_query_params()
+query_params = st.query_params
 
 # Get default filter values from query params
 default_selected_group = query_params.get('selected_group', ['All Groups'])
 default_selected_timeframe = query_params.get('selected_timeframe', ['This Week'])[0]
+
+# Ensure default_selected_timeframe is a valid option
+valid_timeframes = ['This Week', 'Next Week', 'Last Week']
+if default_selected_timeframe not in valid_timeframes:
+    default_selected_timeframe = 'This Week'  # Set a fallback value
 
 selected_group = st.sidebar.multiselect(
     'Group', 
@@ -199,16 +204,16 @@ selected_group = st.sidebar.multiselect(
 
 selected_timeframe = st.sidebar.selectbox(
     'Timeframe',
-    ['This Week', 'Next Week', 'Last Week'],
-    index=['This Week', 'Next Week', 'Last Week'].index(default_selected_timeframe)
+    valid_timeframes,
+    index=valid_timeframes.index(default_selected_timeframe)  # Safe fallback is guaranteed here
 )
 
 # Function to update query parameters
 def update_query_params():
-    st.experimental_set_query_params(
-        selected_group=selected_group,
-        selected_timeframe=selected_timeframe
-    )
+    st.query_params = {
+        "selected_group": selected_group,
+        "selected_timeframe": selected_timeframe
+    }
 
 # Update query parameters when filters change
 update_query_params()
