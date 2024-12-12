@@ -188,7 +188,7 @@ if hasattr(st, 'popover'):
 
                     insert_query = f"""
                     INSERT INTO raw.snowflake.lm_appointments (CLOSER_ID, NAME, GOAL, RANK, FM_GOAL, FM_RANK, ACTIVE, TYPE, MARKET, TIMESTAMP, PROFILE_PICTURE, CLOSER_NOTES)
-                    VALUES ('{salesforce_id}', '{full_name}', {w2h_goal}, {w2h_rank}, {fm_goal}, {fm_rank}, '{active_str}', '{type_selection}', '{market_selection}', '{timestamp}', '{profile_pic}, {closer_notes}');
+                    VALUES ('{salesforce_id}', '{full_name}', {w2h_goal}, {w2h_rank}, {fm_goal}, {fm_rank}, '{active_str}', '{type_selection}', '{market_selection}', '{timestamp}', '{profile_pic}', '{closer_notes}');
                     """
 
                     try:
