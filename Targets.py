@@ -275,7 +275,7 @@ if submitted:
                     CLOSER_NOTES = '{closer_notes}'
             WHEN NOT MATCHED THEN
                 INSERT (CLOSER_ID, NAME, GOAL, RANK, FM_GOAL, FM_RANK, ACTIVE, TYPE, MARKET, TIMESTAMP, PROFILE_PICTURE, CLOSER_NOTES)
-                VALUES ('{salesforce_id}', '{full_name}', {new_goal}, {new_rank}, {fm_goal}, {fm_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}', '{profile_picture}, {closer_notes}');
+                VALUES ('{salesforce_id}', '{full_name}', {new_goal}, {new_rank}, {fm_goal}, {fm_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}', '{profile_picture}', '{closer_notes}');
             """
             queries.append(query)
 
