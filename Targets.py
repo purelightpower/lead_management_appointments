@@ -112,7 +112,7 @@ merged_df['TYPE'] = merged_df['TYPE'].apply(lambda x: x if x in valid_types else
 valid_market_types = df_markets['MARKET'].unique()
 merged_df['MARKET'] = merged_df['MARKET'].apply(lambda x: x if x in valid_market_types else 'No Market')
 
-edit_df = merged_df[['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'FM_GOAL', 'FM_RANK', 'SALESFORCE_ID', 'CLOSER_NOTES']].copy()
+edit_df = merged_df[['ROW_ID', 'PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'FM_GOAL', 'FM_RANK', 'SALESFORCE_ID', 'CLOSER_NOTES']].copy()
 
 # UPDATED SECTION: Always update the session state with the latest edit_df
 st.session_state['filtered_edit_df'] = edit_df.copy()
@@ -221,7 +221,7 @@ with st.form('editor_form'):
     edited_df = st.data_editor(
         filtered_edit_df.reset_index(drop=True),
         column_order=['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'FM_GOAL', 'FM_RANK', 'CLOSER_NOTES'],
-        disabled={'FULL_NAME': True, 'PROFILE_PICTURE': True},
+        disabled={'ROW_ID': True, 'FULL_NAME': True, 'PROFILE_PICTURE': True},
         hide_index=True,
         use_container_width=True,
         column_config={
@@ -255,6 +255,7 @@ if submitted:
         queries = []
         for idx in changes.index.unique():
             row = edited_df.loc[idx]
+            row_id = row['ROW_ID']
             full_name = row['FULL_NAME'].replace("'", "''")
             new_goal = int(row['GOAL'])
             new_rank = int(row['RANK'])
@@ -271,8 +272,8 @@ if submitted:
 
             query = f"""
             MERGE INTO raw.snowflake.lm_appointments AS target
-            USING (SELECT '{full_name}' AS NAME) AS source
-            ON target.NAME = source.NAME
+            USING (SELECT '{row_id}' AS ROW_ID) AS source
+            ON target.ROW_ID = source.ROW_ID
             WHEN MATCHED THEN
                 UPDATE SET
                     GOAL = {new_goal},
