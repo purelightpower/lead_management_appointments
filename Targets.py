@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import uuid
 from datetime import datetime
 from snowflake.snowpark import Session
 
@@ -155,6 +156,8 @@ filtered_edit_df = filtered_edit_df.sort_values(by='FULL_NAME')
 # Generate closer list from df_users
 closer_list = sorted(df_users['FULL_NAME'].dropna().unique())
 
+new_row_id = str(uuid.uuid4()).replace('-', '')
+
 if hasattr(st, 'popover'):
     with st.popover("Add Closer  + ", disabled=False):
         with st.form(clear_on_submit=True, key='add_closer_form', border=False):
@@ -197,8 +200,8 @@ if hasattr(st, 'popover'):
 
                     insert_query = f"""
                     INSERT INTO raw.snowflake.lm_appointments 
-                    (CLOSER_ID, NAME, GOAL, RANK, FM_GOAL, FM_RANK, ACTIVE, TYPE, MARKET, TIMESTAMP, PROFILE_PICTURE, CLOSER_NOTES)
-                    VALUES ('{salesforce_id}', '{full_name}', {w2h_goal}, {w2h_rank}, {fm_goal}, {fm_rank}, '{active_str}', 
+                    (ROW_ID, CLOSER_ID, NAME, GOAL, RANK, FM_GOAL, FM_RANK, ACTIVE, TYPE, MARKET, TIMESTAMP, PROFILE_PICTURE, CLOSER_NOTES)
+                    VALUES ('{new_row_id}', '{salesforce_id}', '{full_name}', {w2h_goal}, {w2h_rank}, {fm_goal}, {fm_rank}, '{active_str}', 
                             '{type_selection}', '{market_selection}', '{timestamp}', '{profile_pic}', '{closer_notes}');
                     """
 
