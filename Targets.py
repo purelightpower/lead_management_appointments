@@ -182,48 +182,37 @@ if hasattr(st, 'popover'):
 
             submit_button = st.form_submit_button("Submit")
             if submit_button:
-    # Check for existing closer in the database
-                existing_closer_query = f"""
-                SELECT COUNT(*) AS count FROM raw.snowflake.lm_appointments
-                WHERE NAME = '{closer_selection.replace("'", "''")}' AND MARKET = '{market_selection.replace("'", "''")}' 
-                    AND TYPE = '{type_selection.replace("'", "''")}';
-                """
-                existing_closer_count = session.sql(existing_closer_query).collect()[0]['COUNT']
-
-                if existing_closer_count > 0:
-                    st.error(f"A closer with the name '{closer_selection}' already exists in the market '{market_selection}' and type '{type_selection}'. Please use a different name or update the existing closer.")
-                else:
         # Generate a unique Salesforce ID or use a different field as a unique identifier
-                    selected_user = df_users[df_users['FULL_NAME'] == closer_selection]
-                    salesforce_id = selected_user['SALESFORCE_ID'].iloc[0]
-                    full_name = closer_selection.strip().replace("'", "''")
-                    active_str = 'Yes' if is_active else 'No'
+                selected_user = df_users[df_users['FULL_NAME'] == closer_selection]
+                salesforce_id = selected_user['SALESFORCE_ID'].iloc[0]
+                full_name = closer_selection.strip().replace("'", "''")
+                active_str = 'Yes' if is_active else 'No'
 
         # Fetch profile picture
-                    profile_pic = 'https://i.ibb.co/ZNK5xmN/pdycc8-1-removebg-preview.png'
-                    if closer_selection in df_profile_pictures['FULL_NAME'].values:
-                        profile_pic = df_profile_pictures.loc[df_profile_pictures['FULL_NAME'] == closer_selection, 'PROFILE_PICTURE'].iloc[0]
-                        if pd.isna(profile_pic) or profile_pic.strip() == '':
-                            profile_pic = 'https://i.ibb.co/ZNK5xmN/pdycc8-1-removebg-preview.png'
+                profile_pic = 'https://i.ibb.co/ZNK5xmN/pdycc8-1-removebg-preview.png'
+                if closer_selection in df_profile_pictures['FULL_NAME'].values:
+                    profile_pic = df_profile_pictures.loc[df_profile_pictures['FULL_NAME'] == closer_selection, 'PROFILE_PICTURE'].iloc[0]
+                    if pd.isna(profile_pic) or profile_pic.strip() == '':
+                        profile_pic = 'https://i.ibb.co/ZNK5xmN/pdycc8-1-removebg-preview.png'
 
-                    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-                    insert_query = f"""
-                    INSERT INTO raw.snowflake.lm_appointments 
-                    (ROW_ID, CLOSER_ID, NAME, GOAL, RANK, FM_GOAL, FM_RANK, ACTIVE, TYPE, MARKET, TIMESTAMP, PROFILE_PICTURE, CLOSER_NOTES)
-                    VALUES ('{new_row_id}', '{salesforce_id}', '{full_name}', {w2h_goal}, {w2h_rank}, {fm_goal}, {fm_rank}, '{active_str}', 
-                            '{type_selection}', '{market_selection}', '{timestamp}', '{profile_pic}', '{closer_notes}');
-                    """
+                insert_query = f"""
+                INSERT INTO raw.snowflake.lm_appointments 
+                (ROW_ID, CLOSER_ID, NAME, GOAL, RANK, FM_GOAL, FM_RANK, ACTIVE, TYPE, MARKET, TIMESTAMP, PROFILE_PICTURE, CLOSER_NOTES)
+                VALUES ('{new_row_id}', '{salesforce_id}', '{full_name}', {w2h_goal}, {w2h_rank}, {fm_goal}, {fm_rank}, '{active_str}', 
+                        '{type_selection}', '{market_selection}', '{timestamp}', '{profile_pic}', '{closer_notes}');
+                """
 
-                    try:
-                        session.sql(insert_query).collect()
-                        st.success(f"You successfully added {closer_selection}")
-                        get_appointments.clear()
-                        st.session_state['data_updated'] = True
-                        st.cache_data.clear()
-                        st.rerun()  # Force app to rerun to show new data immediately
-                    except Exception as e:
-                        st.error(f"Error adding {closer_selection}: {str(e)}")
+                try:
+                    session.sql(insert_query).collect()
+                    st.success(f"You successfully added {closer_selection}")
+                    get_appointments.clear()
+                    st.session_state['data_updated'] = True
+                    st.cache_data.clear()
+                    st.rerun()  # Force app to rerun to show new data immediately
+                except Exception as e:
+                    st.error(f"Error adding {closer_selection}: {str(e)}")
 
 else:
     st.info("Popover feature not available. Please upgrade Streamlit or use an alternative component.")
@@ -313,6 +302,10 @@ if submitted:
                 try:
                     session.sql(query).collect()
                     st.success(f"Saved changes for {row['FULL_NAME']}")
+                    get_appointments.clear()
+                    st.session_state['data_updated'] = True
+                    st.cache_data.clear()
+                    st.rerun()  # Force app to rerun to show new data immediately
                 except Exception as e:
                     st.error(f"Error saving changes for {row['FULL_NAME']}: {str(e)}")
 
