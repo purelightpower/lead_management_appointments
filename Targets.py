@@ -45,9 +45,9 @@ if st.session_state.get('data_updated', False):
 @st.cache_data(show_spinner=False)
 def get_users():
     users_query = """
-        SELECT DISTINCT FULL_NAME, SALESFORCE_ID
-        FROM operational.airtable.vw_users 
-        WHERE role_type IN ('Closer', 'Manager') AND term_date IS NULL
+        SELECT DISTINCT "user.name" FULL_NAME, "team_members.user_id" SALESFORCE_ID
+        FROM operational.salesforce.vw_team_members_flattened
+        WHERE "user.term_date" IS NULL
     """
     return session.sql(users_query).to_pandas()
 
@@ -62,8 +62,9 @@ def get_market():
 @st.cache_data(show_spinner=False)
 def get_profile_pictures():
     profile_picture_query = """
-        SELECT FULL_NAME, PROFILE_PICTURE
-        FROM operational.airtable.vw_users
+        SELECT "user.name" FULL_NAME, "user.picture_link" PROFILE_PICTURE
+        FROM operational.salesforce.vw_team_members_flattened
+        WHERE "user.term_date" IS NULL
     """
     return session.sql(profile_picture_query).to_pandas()
 
@@ -72,7 +73,14 @@ def get_appointments():
     appointments_query = """
         SELECT * FROM raw.snowflake.lm_appointments
     """
-    return session.sql(appointments_query).to_pandas()
+    df = session.sql(appointments_query).to_pandas()
+
+    # Filter out any rows that are marked deleted
+    if "IS_DELETED" in df.columns:
+        df = df[df["IS_DELETED"] != True]  # show only where is_deleted is False or Null
+
+    return df
+
 
 df_users = get_users()
 df_markets = get_market()
@@ -185,7 +193,8 @@ if hasattr(st, 'popover'):
                     st.error(f"A closer with the name '{closer_selection}' already exists in the market '{market_selection}' and type '{type_selection}'. Please use a different name or update the existing closer.")
                 else:
         # Generate a unique Salesforce ID or use a different field as a unique identifier
-                    salesforce_id = f"{closer_selection.strip()}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                    selected_user = df_users[df_users['FULL_NAME'] == closer_selection]
+                    salesforce_id = selected_user['SALESFORCE_ID'].iloc[0]
                     full_name = closer_selection.strip().replace("'", "''")
                     active_str = 'Yes' if is_active else 'No'
 
@@ -223,7 +232,7 @@ with st.form('editor_form'):
     
     edited_df = st.data_editor(
         filtered_edit_df.reset_index(drop=True),
-        column_order=['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'FM_GOAL', 'FM_RANK', 'CLOSER_NOTES'],
+        column_order=['PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'FM_GOAL', 'FM_RANK', 'CLOSER_NOTES', 'IS_DELETED'],
         disabled={'ROW_ID': True, 'FULL_NAME': True, 'PROFILE_PICTURE': True},
         hide_index=True,
         use_container_width=True,
@@ -238,6 +247,7 @@ with st.form('editor_form'):
             'FM_RANK': st.column_config.NumberColumn('FM Rank'),
             'CLOSER_NOTES': st.column_config.TextColumn('Notes'),
             'TYPE': st.column_config.SelectboxColumn('Type', options=valid_types, help="Select the type of channel", required=True),
+            'IS_DELETED': st.column_config.CheckboxColumn('Deleted', help="Check to remove this closer from the table", default=False),
         }
     )
     
@@ -259,6 +269,7 @@ if submitted:
         for idx in changes.index.unique():
             row = edited_df.loc[idx]
             row_id = row['ROW_ID']
+            is_deleted = row['IS_DELETED']
             full_name = row['FULL_NAME'].replace("'", "''")
             new_goal = int(row['GOAL'])
             new_rank = int(row['RANK'])
@@ -288,10 +299,11 @@ if submitted:
                     MARKET = '{new_market}',
                     TIMESTAMP = '{timestamp}',
                     PROFILE_PICTURE = '{profile_picture}',
-                    CLOSER_NOTES = '{closer_notes}'
+                    CLOSER_NOTES = '{closer_notes}',
+                    IS_DELETED = {str(is_deleted).upper()}
             WHEN NOT MATCHED THEN
-                INSERT (CLOSER_ID, NAME, GOAL, RANK, FM_GOAL, FM_RANK, ACTIVE, TYPE, MARKET, TIMESTAMP, PROFILE_PICTURE, CLOSER_NOTES)
-                VALUES ('{salesforce_id}', '{full_name}', {new_goal}, {new_rank}, {fm_goal}, {fm_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}', '{profile_picture}', '{closer_notes}');
+                INSERT (CLOSER_ID, NAME, GOAL, RANK, FM_GOAL, FM_RANK, ACTIVE, TYPE, MARKET, TIMESTAMP, PROFILE_PICTURE, CLOSER_NOTES, IS_DELETED)
+                VALUES ('{salesforce_id}', '{full_name}', {new_goal}, {new_rank}, {fm_goal}, {fm_rank}, '{active_str}', '{new_type}', '{new_market}', '{timestamp}', '{profile_picture}', '{closer_notes}', '{is_deleted}');
             """
             queries.append(query)
 
