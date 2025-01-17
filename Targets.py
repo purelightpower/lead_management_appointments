@@ -75,10 +75,11 @@ def get_appointments():
     """
     df = session.sql(appointments_query).to_pandas()
 
-    # Filter out any rows that are marked deleted
     if "IS_DELETED" in df.columns:
-        df = df[df["IS_DELETED"] != True]  # show only where is_deleted is False or Null
+        df["IS_DELETED"] = df["IS_DELETED"].astype(bool)
 
+    # Filter out rows where IS_DELETED is True
+    df = df[df["IS_DELETED"] != True]
     return df
 
 
@@ -121,7 +122,7 @@ merged_df['TYPE'] = merged_df['TYPE'].apply(lambda x: x if x in valid_types else
 valid_market_types = df_markets['MARKET'].unique()
 merged_df['MARKET'] = merged_df['MARKET'].apply(lambda x: x if x in valid_market_types else 'No Market')
 
-edit_df = merged_df[['ROW_ID', 'PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'FM_GOAL', 'FM_RANK', 'SALESFORCE_ID', 'CLOSER_NOTES']].copy()
+edit_df = merged_df[['ROW_ID', 'PROFILE_PICTURE', 'FULL_NAME', 'MARKET', 'TYPE', 'ACTIVE', 'GOAL', 'RANK', 'FM_GOAL', 'FM_RANK', 'SALESFORCE_ID', 'CLOSER_NOTES', 'IS_DELETED']].copy()
 
 # UPDATED SECTION: Always update the session state with the latest edit_df
 st.session_state['filtered_edit_df'] = edit_df.copy()

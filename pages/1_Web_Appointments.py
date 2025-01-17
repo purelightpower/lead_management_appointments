@@ -75,6 +75,7 @@ JOIN (SELECT 'This Week' AS timeframe UNION ALL SELECT 'Last Week' AS timeframe 
 WHERE 
     a.ACTIVE = 'Yes' 
     AND a.TYPE IN ('🏠🏃 Hybrid', '🏠 Web To Home')
+    AND (a.IS_DELETED != 'true' OR a.IS_DELETED IS NULL)
 """
 
 appts_query = """
