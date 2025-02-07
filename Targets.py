@@ -4,6 +4,7 @@ import numpy as np
 import uuid
 from datetime import datetime
 from snowflake.snowpark import Session
+from snowflake.snowpark.context import get_active_session
 
 st.set_page_config(
     page_title="Appointment Dashboard",
@@ -36,7 +37,14 @@ def create_snowflake_session():
     }
     return Session.builder.configs(connection_parameters).create()
 
-session = create_snowflake_session()
+session = None
+
+try:
+    session = get_active_session()
+    print("Got active session")
+except:
+    session = create_snowflake_session()
+
 
 if st.session_state.get('data_updated', False):
     st.cache_data.clear()

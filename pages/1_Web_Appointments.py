@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from snowflake.snowpark import Session
+from snowflake.snowpark.context import get_active_session
 from snowflake.snowpark.functions import col
 
 st.set_page_config(
@@ -37,8 +38,13 @@ def create_snowflake_session():
     }
     return Session.builder.configs(connection_parameters).create()
 
-# Initialize Snowpark session
-session = create_snowflake_session()
+session = None
+
+try:
+    session = get_active_session()
+except:
+    session = create_snowflake_session()
+
 
 # Check if data has been updated
 if st.session_state.get('data_updated', False):
